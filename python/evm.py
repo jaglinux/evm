@@ -13,19 +13,68 @@
 import json
 import os
 
+class Stack:
+    def __init__(self, size = 1024):
+        self.list = []
+        self.maxSize = size
+
+    def push(self, item):
+        self.list.append(item)
+
+class Memory:
+    def __init__(self):
+        self.array = bytearray();
+
+class Context:
+    def __init__(self, code, pc=0):
+        self.stack = Stack(1024)
+        self.memory = Memory()
+        self.code = code
+        self.pc = pc
+
+def opcodeStop(ctx):
+    return
+
+def opcodePush1(ctx):
+    ctx.pc +=1
+    ctx.stack.push(ctx.code[ctx.pc])
+
+class OpcodeData:
+    def __init__(self, opcode, name, run):
+        self.opcode = opcode
+        self.name = name
+        # function pointer
+        self.run = run
+
+opcode = {}
+opcode[0x00] = OpcodeData(0x00, "STOP", opcodeStop)
+opcode[0x60] = OpcodeData(0x60, "PUSH1", opcodePush1)
+
+
+def prehook(opcodeObj):
+    print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
+
 def evm(code):
-    pc = 0
     success = True
-    stack = []
+    ctx = Context(code)
 
-    while pc < len(code):
-        op = code[pc]
-        pc += 1
-
-        # TODO: implement the EVM here!
+    while ctx.pc < len(code):
+        op = code[ctx.pc]
+        opcodeObj = opcode.get(op)
+        if opcodeObj:
+            prehook(opcodeObj)
+            opcodeObj.run(ctx)
+        else:
+            print("Opcode implementation not found for ", hex(op))
+            # return fake success but empty stack so that test case
+            # panics with proper test name and error message
+            return (success, [])
+        # pc will always increment by 1 here
+        # pc can also be incremented in PUSH opcodes
+        ctx.pc += 1
         
 
-    return (success, stack)
+    return (success, ctx.stack.list)
 
 def test():
     script_dirname = os.path.dirname(os.path.abspath(__file__))
