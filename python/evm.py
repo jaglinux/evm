@@ -10,6 +10,7 @@
 # - Edit `evm.py` (this file!), see TODO below
 # - Run `python3 evm.py` to run the tests
 
+#Implementation inspired by https://github.com/karmacoma-eth/smol-evm
 import json
 import os
 
@@ -36,8 +37,16 @@ def opcodeStop(ctx):
     return
 
 def opcodePush1(ctx):
+    ctx.stack.push(f'{ctx.code[ctx.pc]:x}')
     ctx.pc +=1
-    ctx.stack.push(ctx.code[ctx.pc])
+
+
+def opcodePush2(ctx):
+    ctx.stack.push(f'{ctx.code[ctx.pc]:x}')
+    ctx.pc +=1
+    ctx.stack.push(f'{ctx.code[ctx.pc]:x}')
+    ctx.pc +=1
+
 
 class OpcodeData:
     def __init__(self, opcode, name, run):
@@ -49,6 +58,8 @@ class OpcodeData:
 opcode = {}
 opcode[0x00] = OpcodeData(0x00, "STOP", opcodeStop)
 opcode[0x60] = OpcodeData(0x60, "PUSH1", opcodePush1)
+opcode[0x61] = OpcodeData(0x61, "PUSH2", opcodePush2)
+
 
 
 def prehook(opcodeObj):
@@ -60,6 +71,9 @@ def evm(code):
 
     while ctx.pc < len(code):
         op = code[ctx.pc]
+        # pc will always increment by 1 here
+        # pc can also be incremented in PUSH opcodes
+        ctx.pc += 1
         opcodeObj = opcode.get(op)
         if opcodeObj:
             prehook(opcodeObj)
@@ -69,12 +83,11 @@ def evm(code):
             # return fake success but empty stack so that test case
             # panics with proper test name and error message
             return (success, [])
-        # pc will always increment by 1 here
-        # pc can also be incremented in PUSH opcodes
-        ctx.pc += 1
         
-
-    return (success, ctx.stack.list)
+    result=[]
+    if len(ctx.stack.list):
+        result.append(int('0x' + ''.join(ctx.stack.list), 16))
+    return (success, result)
 
 def test():
     script_dirname = os.path.dirname(os.path.abspath(__file__))
