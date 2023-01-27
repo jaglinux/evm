@@ -37,14 +37,14 @@ def opcodeStop(ctx):
     return
 
 def opcodePush1(ctx):
-    ctx.stack.push(f'{ctx.code[ctx.pc]:x}')
+    ctx.stack.push(ctx.code[ctx.pc])
     ctx.pc +=1
 
 
 def opcodePush2(ctx):
-    ctx.stack.push(f'{ctx.code[ctx.pc]:x}')
+    ctx.stack.push(ctx.code[ctx.pc])
     ctx.pc +=1
-    ctx.stack.push(f'{ctx.code[ctx.pc]:x}')
+    ctx.stack.push(ctx.code[ctx.pc])
     ctx.pc +=1
 
 
@@ -86,7 +86,8 @@ def evm(code):
         
     result=[]
     if len(ctx.stack.list):
-        result.append(int('0x' + ''.join(ctx.stack.list), 16))
+        tempList = [f'{i:x}' for i in ctx.stack.list]
+        result.append(int(''.join(tempList), 16))
     return (success, result)
 
 def test():
