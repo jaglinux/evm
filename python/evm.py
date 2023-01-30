@@ -22,6 +22,9 @@ class Stack:
     def push(self, item):
         self.list.append(item)
 
+    def pop(self):
+        return self.list.pop()
+
 class Memory:
     def __init__(self):
         self.array = bytearray();
@@ -89,7 +92,7 @@ opcode[0x7F] = OpcodeData(0x7F, "PUSH32", opcodePush, 32)
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
 
-def evm(code):
+def evm(code, outputStackLen):
     success = True
     ctx = Context(code)
 
@@ -110,8 +113,14 @@ def evm(code):
         
     result=[]
     if len(ctx.stack.list):
-        tempList = [f'{i:x}' for i in ctx.stack.list]
-        result.append(int(''.join(tempList), 16))
+        if outputStackLen >= 2:
+        # output format is different if output stack is greater than 2
+        # check evm.json for more details.
+            while len(ctx.stack.list):
+                result.append(ctx.stack.pop())
+        else:
+            tempList = [f'{i:x}' for i in ctx.stack.list]
+            result.append(int(''.join(tempList), 16))
     return (success, result)
 
 def test():
@@ -125,7 +134,7 @@ def test():
             # Note: as the test cases get more complex, you'll need to modify this
             # to pass down more arguments to the evm function
             code = bytes.fromhex(test['code']['bin'])
-            (success, stack) = evm(code)
+            (success, stack) = evm(code, len(test['expect']['stack']))
 
             expected_stack = [int(x, 16) for x in test['expect']['stack']]
             
