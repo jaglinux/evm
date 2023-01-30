@@ -13,6 +13,17 @@
 #Implementation inspired by https://github.com/karmacoma-eth/smol-evm
 import json
 import os
+import sys
+from dataclasses import dataclass
+
+inputs = len(sys.argv)
+# some random high number so that by default all test cases will run
+testsMax = 1000
+if inputs == 2:
+    # control the test cases numbers here
+    testsMax = int(list(sys.argv)[1])
+
+testsRun = 0
 
 class Stack:
     def __init__(self, size = 1024):
@@ -37,12 +48,23 @@ class Context:
         self.pc = pc
 
 def opcodeStop(ctx, dummy):
-    return
+    return OpcodeResponse(True, None)
 
 def opcodePush(ctx, pushBytes):
     for _ in range(pushBytes):
         ctx.stack.push(ctx.code[ctx.pc])
         ctx.pc +=1
+
+    return OpcodeResponse(False, None)
+
+def opcodePop(ctx, dummy):
+    data = ctx.stack.pop()
+    return OpcodeResponse(False, data)
+
+@dataclass
+class OpcodeResponse:
+    stop: bool #stop will be True for stop opcode
+    data: int # pop() opcode can return data popped through this variable
 
 class OpcodeData:
     def __init__(self, opcode, name, run, pushBytes=0):
@@ -88,11 +110,17 @@ opcode[0x7C] = OpcodeData(0x7C, "PUSH29", opcodePush, 29)
 opcode[0x7D] = OpcodeData(0x7D, "PUSH30", opcodePush, 30)
 opcode[0x7E] = OpcodeData(0x7E, "PUSH31", opcodePush, 31)
 opcode[0x7F] = OpcodeData(0x7F, "PUSH32", opcodePush, 32)
+opcode[0x50] = OpcodeData(0x50, "POP", opcodePop)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
 
 def evm(code, outputStackLen):
+    global testsRun, testsMax
+    if testsRun >= testsMax:
+        sys.exit()
+    testsRun+=1
+
     success = True
     ctx = Context(code)
 
@@ -104,7 +132,9 @@ def evm(code, outputStackLen):
         opcodeObj = opcode.get(op)
         if opcodeObj:
             prehook(opcodeObj)
-            opcodeObj.run(ctx, opcodeObj.pushBytes)
+            opcodeReturn = opcodeObj.run(ctx, opcodeObj.pushBytes)
+            if opcodeReturn.stop == True:
+                break
         else:
             print("Opcode implementation not found for ", hex(op))
             # return fake success but empty stack so that test case
