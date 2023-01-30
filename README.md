@@ -23,3 +23,6 @@ The repository contains templates for JavaScript, TypeScript, Python, Go and Rus
 All the materials in the repository are made by [w1nt3r.eth](https://twitter.com/w1nt3r_eth). The repository is part of the "EVM From Scratch" course (release date TBD).
 
 ## Comment by jaglinux : Implementation inspired by https://github.com/karmacoma-eth/smol-evm
+
+./python/evm.py 11 <br>
+This command will run 11 test cases instead of running all test cases. <br>
