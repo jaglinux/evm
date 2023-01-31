@@ -16,6 +16,9 @@ import os
 import sys
 from dataclasses import dataclass
 
+# Constants
+UINT256MAX = (2 ** 256) -1
+
 inputs = len(sys.argv)
 # some random high number so that by default all test cases will run
 testsMax = 1000
@@ -30,7 +33,11 @@ class Stack:
         self.list = []
         self.maxSize = size
 
+    # Push max 32 bytes
     def push(self, item):
+        if item > UINT256MAX:
+            # TODO: handle error
+            return False
         self.list.append(item)
 
     def pop(self):
@@ -51,15 +58,28 @@ def opcodeStop(ctx, dummy):
     return OpcodeResponse(True, None)
 
 def opcodePush(ctx, pushBytes):
-    for _ in range(pushBytes):
-        ctx.stack.push(ctx.code[ctx.pc])
+    data = 0
+    for i in range(pushBytes):
+        # Big Endian
+        data = (data << 8) | ctx.code[ctx.pc]
         ctx.pc +=1
+    ctx.stack.push(data)
+
 
     return OpcodeResponse(False, None)
 
 def opcodePop(ctx, dummy):
     data = ctx.stack.pop()
     return OpcodeResponse(False, data)
+
+def opcodeAdd(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = (a+b)
+    # overflow condition
+    result &= UINT256MAX
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
 
 @dataclass
 class OpcodeResponse:
@@ -111,6 +131,7 @@ opcode[0x7D] = OpcodeData(0x7D, "PUSH30", opcodePush, 30)
 opcode[0x7E] = OpcodeData(0x7E, "PUSH31", opcodePush, 31)
 opcode[0x7F] = OpcodeData(0x7F, "PUSH32", opcodePush, 32)
 opcode[0x50] = OpcodeData(0x50, "POP", opcodePop)
+opcode[0x01] = OpcodeData(0x01, "ADD", opcodeAdd)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
@@ -150,6 +171,7 @@ def evm(code, outputStackLen):
                 result.append(ctx.stack.pop())
         else:
             tempList = [f'{i:x}' for i in ctx.stack.list]
+            print('result in hex ', ''.join(tempList))
             result.append(int(''.join(tempList), 16))
     return (success, result)
 
