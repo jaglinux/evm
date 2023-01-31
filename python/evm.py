@@ -64,8 +64,6 @@ def opcodePush(ctx, pushBytes):
         data = (data << 8) | ctx.code[ctx.pc]
         ctx.pc +=1
     ctx.stack.push(data)
-
-
     return OpcodeResponse(False, None)
 
 def opcodePop(ctx, dummy):
@@ -76,6 +74,24 @@ def opcodeAdd(ctx, dummy):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = (a+b)
+    # overflow condition
+    result &= UINT256MAX
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeMul(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = (a*b)
+    # overflow condition
+    result &= UINT256MAX
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeSub(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = (a-b)
     # overflow condition
     result &= UINT256MAX
     ctx.stack.push(result)
@@ -132,6 +148,9 @@ opcode[0x7E] = OpcodeData(0x7E, "PUSH31", opcodePush, 31)
 opcode[0x7F] = OpcodeData(0x7F, "PUSH32", opcodePush, 32)
 opcode[0x50] = OpcodeData(0x50, "POP", opcodePop)
 opcode[0x01] = OpcodeData(0x01, "ADD", opcodeAdd)
+opcode[0x02] = OpcodeData(0x02, "MUL", opcodeMul)
+opcode[0x03] = OpcodeData(0x03, "SUB", opcodeSub)
+
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
