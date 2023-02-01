@@ -22,11 +22,18 @@ UINT256MAX = (2 ** 256) -1
 inputs = len(sys.argv)
 # some random high number so that by default all test cases will run
 testsMax = 1000
-if inputs == 2:
-    # control the test cases numbers here
-    testsMax = int(list(sys.argv)[1])
-
 testsRun = 0
+# singleBin which contains code binary to run
+singleBin = None
+if inputs == 2:
+    arg2 = list(sys.argv)[1]
+    if "test" in arg2:
+        arg2List = arg2.split('=')
+        if arg2List[0] == 'test':
+            singleBin = arg2List[1]
+    else:
+        # control the test cases numbers here
+        testsMax = int(arg2)
 
 class Stack:
     def __init__(self, size = 1024):
@@ -247,4 +254,8 @@ def test():
                 print(f"✓  Test #{i + 1}/{total} {test['name']}")
 
 if __name__ == '__main__':
-    test()
+    if singleBin is None:
+        test()
+    else:
+        print('Run custom single test')
+        evm(bytes.fromhex(singleBin), 1)
