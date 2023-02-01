@@ -93,7 +93,21 @@ def opcodeSub(ctx, dummy):
     b = ctx.stack.pop()
     result = (a-b)
     # overflow condition
+    # 2's signed complement, equivalent to
+    # i=-1 ; i.to_bytes(32, "big", signed=True)
+    # b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
     result &= UINT256MAX
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeDiv(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    # Handle Divide by 0
+    if b == 0:
+        result = 0
+    else:
+        result = int(a / b)
     ctx.stack.push(result)
     return OpcodeResponse(False, None)
 
@@ -150,6 +164,7 @@ opcode[0x50] = OpcodeData(0x50, "POP", opcodePop)
 opcode[0x01] = OpcodeData(0x01, "ADD", opcodeAdd)
 opcode[0x02] = OpcodeData(0x02, "MUL", opcodeMul)
 opcode[0x03] = OpcodeData(0x03, "SUB", opcodeSub)
+opcode[0x04] = OpcodeData(0x04, "DIV", opcodeDiv)
 
 
 def prehook(opcodeObj):
