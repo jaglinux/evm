@@ -24,5 +24,17 @@ All the materials in the repository are made by [w1nt3r.eth](https://twitter.com
 
 ## Comment by jaglinux : Implementation inspired by https://github.com/karmacoma-eth/smol-evm
 
-./python/evm.py 11 <br>
-This command will run 11 test cases instead of running all test cases. <br>
+### Commands to run
+1. Default command to run all test cases <br>
+```
+./python/evm.py
+```
+2. Command to run till "n" number of test cases. <br>
+Here we run till 11th test cases. <br>
+```
+./python/evm.py 11
+```
+3. Command to run custom single test
+```
+./python/evm.py test=6001600201
+```
