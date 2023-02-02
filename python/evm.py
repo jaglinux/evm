@@ -128,6 +128,26 @@ def opcodeMod(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(False, None)
 
+def opcodeAddMod(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = a+b
+    c = ctx.stack.pop()
+    result = result % c
+    result &= UINT256MAX
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeMulMod(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = a*b
+    c = ctx.stack.pop()
+    result = result % c
+    result &= UINT256MAX
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
 @dataclass
 class OpcodeResponse:
     stop: bool #stop will be True for stop opcode
@@ -183,6 +203,8 @@ opcode[0x02] = OpcodeData(0x02, "MUL", opcodeMul)
 opcode[0x03] = OpcodeData(0x03, "SUB", opcodeSub)
 opcode[0x04] = OpcodeData(0x04, "DIV", opcodeDiv)
 opcode[0x06] = OpcodeData(0x06, "MOD", opcodeMod)
+opcode[0x08] = OpcodeData(0x08, "MODADD", opcodeAddMod)
+opcode[0x09] = OpcodeData(0x09, "MODMUL", opcodeMulMod)
 
 
 def prehook(opcodeObj):
