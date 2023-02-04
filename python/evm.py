@@ -44,6 +44,7 @@ class Stack:
     def push(self, item):
         if item > UINT256MAX:
             # TODO: handle error
+            print('STACK OVERFLOW')
             return False
         self.list.append(item)
 
@@ -148,6 +149,24 @@ def opcodeMulMod(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(False, None)
 
+def opcodeExp(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = a ** b
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeSignExt(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = b
+    mask = (a+1)*8
+    if b & int(2**(mask-1)):
+        result = (UINT256MAX << mask) | b
+        result &= UINT256MAX
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
 @dataclass
 class OpcodeResponse:
     stop: bool #stop will be True for stop opcode
@@ -205,6 +224,8 @@ opcode[0x04] = OpcodeData(0x04, "DIV", opcodeDiv)
 opcode[0x06] = OpcodeData(0x06, "MOD", opcodeMod)
 opcode[0x08] = OpcodeData(0x08, "MODADD", opcodeAddMod)
 opcode[0x09] = OpcodeData(0x09, "MODMUL", opcodeMulMod)
+opcode[0x0A] = OpcodeData(0x0A, "EXP", opcodeExp)
+opcode[0x0B] = OpcodeData(0x0B, "SIGNEXTEND", opcodeSignExt)
 
 
 def prehook(opcodeObj):
