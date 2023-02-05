@@ -72,6 +72,7 @@ class Utils:
             return a - (1 << 256)
         return a
 
+    @staticmethod
     def convertIntTo2sComplement(a):
         # if its +ve integer, just return the input
         # if its -ve integer, calculate 2s Complement
@@ -200,6 +201,76 @@ def opcodeSdiv(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(False, None)
 
+def opcodeSmod(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    # Inputs are in 2s complement, Get the corresponding int value
+    a = Utils.convert2sComplementToInt(a)
+    b = Utils.convert2sComplementToInt(b)
+    if b == 0:
+        result = 0
+    else:
+        result = a % b
+        # Result is int. If its -ve integer, Get the corresponding
+        # 2s complement
+        result = Utils.convertIntTo2sComplement(result)
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeLT(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    if a < b:
+        result = 1
+    else:
+        result = 0
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeGT(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    if a > b:
+        result = 1
+    else:
+        result = 0
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeSLT(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    a = Utils.convert2sComplementToInt(a)
+    b = Utils.convert2sComplementToInt(b)
+    if a < b:
+        result = 1
+    else:
+        result = 0
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeSGT(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    a = Utils.convert2sComplementToInt(a)
+    b = Utils.convert2sComplementToInt(b)
+    if a > b:
+        result = 1
+    else:
+        result = 0
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeEQ(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    if a == b:
+        result = 1
+    else:
+        result = 0
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
 @dataclass
 class OpcodeResponse:
     stop: bool #stop will be True for stop opcode
@@ -259,8 +330,13 @@ opcode[0x08] = OpcodeData(0x08, "MODADD", opcodeAddMod)
 opcode[0x09] = OpcodeData(0x09, "MODMUL", opcodeMulMod)
 opcode[0x0A] = OpcodeData(0x0A, "EXP", opcodeExp)
 opcode[0x0B] = OpcodeData(0x0B, "SIGNEXTEND", opcodeSignExt)
-opcode[0x05] = OpcodeData(0x0B, "SDIV", opcodeSdiv)
-
+opcode[0x05] = OpcodeData(0x05, "SDIV", opcodeSdiv)
+opcode[0x07] = OpcodeData(0x07, "SMOD", opcodeSmod)
+opcode[0x10] = OpcodeData(0x10, "LT", opcodeLT)
+opcode[0x11] = OpcodeData(0x11, "GT", opcodeGT)
+opcode[0x12] = OpcodeData(0x12, "SLT", opcodeSLT)
+opcode[0x13] = OpcodeData(0x13, "SGT", opcodeSGT)
+opcode[0x14] = OpcodeData(0x14, "EQ", opcodeEQ)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
