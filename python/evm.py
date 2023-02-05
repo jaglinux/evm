@@ -51,6 +51,15 @@ class Stack:
     def pop(self):
         return self.list.pop()
 
+    def len(self):
+        return len(self.list)
+
+    def elements(self):
+        return self.list
+
+    def peek(self, index):
+        return self.list[index]
+
 class Memory:
     def __init__(self):
         self.array = bytearray();
@@ -356,6 +365,19 @@ def opcodeByte(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(False, None)
 
+def opcodeDup(ctx, index):
+    try:
+        a = ctx.stack.peek(-index)
+    except IndexError:
+        print("Not enough values on the stack")
+        return OpcodeResponse(True, None)
+    ctx.stack.push(a)
+    return OpcodeResponse(False, None)
+
+def opcodeSwap(ctx, index):
+
+    return OpcodeResponse(False, None)
+
 @dataclass
 class OpcodeResponse:
     stop: bool #stop will be True for stop opcode
@@ -431,7 +453,38 @@ opcode[0x1B] = OpcodeData(0x1B, "SHL", opcodeSHL)
 opcode[0x1C] = OpcodeData(0x1C, "SHR", opcodeSHR)
 opcode[0x1D] = OpcodeData(0x1D, "SAR", opcodeSAR)
 opcode[0x1A] = OpcodeData(0x1A, "BYTE", opcodeByte)
-
+opcode[0x80] = OpcodeData(0x80, "DUP1", opcodeDup, 1)
+opcode[0x81] = OpcodeData(0x81, "DUP2", opcodeDup, 2)
+opcode[0x82] = OpcodeData(0x82, "DUP3", opcodeDup, 3)
+opcode[0x83] = OpcodeData(0x83, "DUP4", opcodeDup, 4)
+opcode[0x84] = OpcodeData(0x84, "DUP5", opcodeDup, 5)
+opcode[0x85] = OpcodeData(0x85, "DUP6", opcodeDup, 6)
+opcode[0x86] = OpcodeData(0x86, "DUP7", opcodeDup, 7)
+opcode[0x87] = OpcodeData(0x87, "DUP8", opcodeDup, 8)
+opcode[0x88] = OpcodeData(0x88, "DUP9", opcodeDup, 9)
+opcode[0x89] = OpcodeData(0x89, "DUP10", opcodeDup, 10)
+opcode[0x8a] = OpcodeData(0x8a, "DUP11", opcodeDup, 11)
+opcode[0x8b] = OpcodeData(0x8b, "DUP12", opcodeDup, 12)
+opcode[0x8c] = OpcodeData(0x8c, "DUP13", opcodeDup, 13)
+opcode[0x8d] = OpcodeData(0x8d, "DUP14", opcodeDup, 14)
+opcode[0x8e] = OpcodeData(0x8e, "DUP15", opcodeDup, 15)
+opcode[0x8f] = OpcodeData(0x8f, "DUP16", opcodeDup, 16)
+opcode[0x90] = OpcodeData(0x90, "SWAP1", opcodeSwap, 1)
+opcode[0x91] = OpcodeData(0x91, "SWAP2", opcodeSwap, 2)
+opcode[0x92] = OpcodeData(0x92, "SWAP3", opcodeSwap, 3)
+opcode[0x93] = OpcodeData(0x93, "SWAP4", opcodeSwap, 4)
+opcode[0x94] = OpcodeData(0x94, "SWAP5", opcodeSwap, 5)
+opcode[0x95] = OpcodeData(0x95, "SWAP6", opcodeSwap, 6)
+opcode[0x96] = OpcodeData(0x96, "SWAP7", opcodeSwap, 7)
+opcode[0x97] = OpcodeData(0x97, "SWAP8", opcodeSwap, 8)
+opcode[0x98] = OpcodeData(0x98, "SWAP9", opcodeSwap, 9)
+opcode[0x99] = OpcodeData(0x99, "SWAP10", opcodeSwap, 10)
+opcode[0x9a] = OpcodeData(0x9a, "SWAP11", opcodeSwap, 11)
+opcode[0x9b] = OpcodeData(0x9b, "SWAP12", opcodeSwap, 12)
+opcode[0x9c] = OpcodeData(0x9c, "SWAP13", opcodeSwap, 13)
+opcode[0x9d] = OpcodeData(0x9d, "SWAP14", opcodeSwap, 14)
+opcode[0x9e] = OpcodeData(0x9e, "SWAP15", opcodeSwap, 15)
+opcode[0x9f] = OpcodeData(0x9f, "SWAP16", opcodeSwap, 16)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
@@ -464,14 +517,14 @@ def evm(code, outputStackLen):
             return (success, [])
         
     result=[]
-    if len(ctx.stack.list):
+    if ctx.stack.len():
         if outputStackLen >= 2:
         # output format is different if output stack is greater than 2
         # check evm.json for more details.
-            while len(ctx.stack.list):
+            while ctx.stack.len():
                 result.append(ctx.stack.pop())
         else:
-            tempList = [f'{i:x}' for i in ctx.stack.list]
+            tempList = [f'{i:x}' for i in ctx.stack.elements()]
             print('result in hex ', ''.join(tempList))
             result.append(int(''.join(tempList), 16))
     return (success, result)
