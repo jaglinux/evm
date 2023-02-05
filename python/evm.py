@@ -271,6 +271,91 @@ def opcodeEQ(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(False, None)
 
+def opcodeIsZero(ctx, dummy):
+    a = ctx.stack.pop()
+    result = 0
+    if a == 0:
+        result = 1
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeNot(ctx, dummy):
+    a = ctx.stack.pop()
+    a ^= (2 ** 256)-1
+    ctx.stack.push(a)
+    return OpcodeResponse(False, None)
+
+def opcodeAnd(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = a & b
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeOr(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = a | b
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeXor(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    result = a ^ b
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeSHL(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    if a > 255:
+        result = 0
+    else:
+        result = b << a
+        result &= UINT256MAX
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeSHR(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    if a > 255:
+        result = 0
+    else:
+        result = b >> a
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeSAR(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    isNegative = b & (1 << 255)
+    if a > 255:
+        if isNegative:
+            result = (2**256)-1
+        else:
+            result = 0
+    else:
+        result = b >> a
+        if isNegative:
+            for i in range(a):
+                result |= ( 1 << (255-i))
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
+def opcodeByte(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+
+    if a > 31:
+        result = 0
+    else:
+        offset = (31 - a) * 8
+        result = (b & (0xff << offset)) >> offset
+    ctx.stack.push(result)
+    return OpcodeResponse(False, None)
+
 @dataclass
 class OpcodeResponse:
     stop: bool #stop will be True for stop opcode
@@ -337,6 +422,16 @@ opcode[0x11] = OpcodeData(0x11, "GT", opcodeGT)
 opcode[0x12] = OpcodeData(0x12, "SLT", opcodeSLT)
 opcode[0x13] = OpcodeData(0x13, "SGT", opcodeSGT)
 opcode[0x14] = OpcodeData(0x14, "EQ", opcodeEQ)
+opcode[0x15] = OpcodeData(0x15, "ISZERO", opcodeIsZero)
+opcode[0x19] = OpcodeData(0x19, "NOT", opcodeNot)
+opcode[0x16] = OpcodeData(0x16, "AND", opcodeAnd)
+opcode[0x17] = OpcodeData(0x17, "OR", opcodeOr)
+opcode[0x18] = OpcodeData(0x18, "XOR", opcodeXor)
+opcode[0x1B] = OpcodeData(0x1B, "SHL", opcodeSHL)
+opcode[0x1C] = OpcodeData(0x1C, "SHR", opcodeSHR)
+opcode[0x1D] = OpcodeData(0x1D, "SAR", opcodeSAR)
+opcode[0x1A] = OpcodeData(0x1A, "BYTE", opcodeByte)
+
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
