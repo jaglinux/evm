@@ -60,6 +60,9 @@ class Stack:
     def peek(self, index):
         return self.list[index]
 
+    def replace(self, index, value):
+        self.list[index] = value
+
 class Memory:
     def __init__(self):
         self.array = bytearray();
@@ -375,8 +378,17 @@ def opcodeDup(ctx, index):
     return OpcodeResponse(False, None)
 
 def opcodeSwap(ctx, index):
-
+    try:
+        bottom = ctx.stack.peek(-(index+1))
+    except IndexError:
+        print("Not enough values on the stack")
+        return OpcodeResponse(True, None)
+    ctx.stack.replace(-(index+1), ctx.stack.peek(-1))
+    ctx.stack.replace(-1, bottom)
     return OpcodeResponse(False, None)
+
+def opcodeInvalid(ctx, dummy):
+    return OpcodeResponse(True, None)
 
 @dataclass
 class OpcodeResponse:
@@ -485,6 +497,7 @@ opcode[0x9c] = OpcodeData(0x9c, "SWAP13", opcodeSwap, 13)
 opcode[0x9d] = OpcodeData(0x9d, "SWAP14", opcodeSwap, 14)
 opcode[0x9e] = OpcodeData(0x9e, "SWAP15", opcodeSwap, 15)
 opcode[0x9f] = OpcodeData(0x9f, "SWAP16", opcodeSwap, 16)
+opcode[0xfe] = OpcodeData(0xfe, "INVALID", opcodeInvalid)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
