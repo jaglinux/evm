@@ -391,6 +391,25 @@ def opcodeInvalid(ctx, dummy):
     # Consume all gas, Sorry !
     return OpcodeResponse(success=False, stopRun=True, data=None)
 
+def opcodePC(ctx, dummy):
+    # Already increment PC before, return PC - 1
+    ctx.stack.push(ctx.pc - 1)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeGas(ctx, dummy):
+    # not implemented, return UINTMAX
+    ctx.stack.push(UINT256MAX)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeJump(ctx, dummy):
+    a = ctx.stack.pop()
+    # jump pc should be JUMPDEST
+    if ctx.code[a] != 0x5b:
+        return OpcodeResponse(success=False, stopRun=True, data=None)
+    else:
+        ctx.pc = a+1
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -500,6 +519,9 @@ opcode[0x9d] = OpcodeData(0x9d, "SWAP14", opcodeSwap, 14)
 opcode[0x9e] = OpcodeData(0x9e, "SWAP15", opcodeSwap, 15)
 opcode[0x9f] = OpcodeData(0x9f, "SWAP16", opcodeSwap, 16)
 opcode[0xfe] = OpcodeData(0xfe, "INVALID", opcodeInvalid)
+opcode[0x58] = OpcodeData(0x58, "PC", opcodePC)
+opcode[0x5a] = OpcodeData(0x5a, "GAS", opcodeGas)
+opcode[0x56] = OpcodeData(0x56, "JUMP", opcodeJump)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
