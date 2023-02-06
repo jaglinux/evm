@@ -93,7 +93,7 @@ class Utils:
         return a
 
 def opcodeStop(ctx, dummy):
-    return OpcodeResponse(True, None)
+    return OpcodeResponse(success=True, stopRun=True, data=None)
 
 def opcodePush(ctx, pushBytes):
     data = 0
@@ -102,11 +102,11 @@ def opcodePush(ctx, pushBytes):
         data = (data << 8) | ctx.code[ctx.pc]
         ctx.pc +=1
     ctx.stack.push(data)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodePop(ctx, dummy):
     data = ctx.stack.pop()
-    return OpcodeResponse(False, data)
+    return OpcodeResponse(success=True, stopRun=False, data=data)
 
 def opcodeAdd(ctx, dummy):
     a = ctx.stack.pop()
@@ -115,7 +115,7 @@ def opcodeAdd(ctx, dummy):
     # overflow condition
     result &= UINT256MAX
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeMul(ctx, dummy):
     a = ctx.stack.pop()
@@ -124,7 +124,7 @@ def opcodeMul(ctx, dummy):
     # overflow condition
     result &= UINT256MAX
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSub(ctx, dummy):
     a = ctx.stack.pop()
@@ -136,7 +136,7 @@ def opcodeSub(ctx, dummy):
     # b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
     result &= UINT256MAX
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeDiv(ctx, dummy):
     a = ctx.stack.pop()
@@ -147,7 +147,7 @@ def opcodeDiv(ctx, dummy):
     else:
         result = int(a / b)
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeMod(ctx, dummy):
     a = ctx.stack.pop()
@@ -157,7 +157,7 @@ def opcodeMod(ctx, dummy):
     else:
         result = a % b
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeAddMod(ctx, dummy):
     a = ctx.stack.pop()
@@ -167,7 +167,7 @@ def opcodeAddMod(ctx, dummy):
     result = result % c
     result &= UINT256MAX
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeMulMod(ctx, dummy):
     a = ctx.stack.pop()
@@ -177,14 +177,14 @@ def opcodeMulMod(ctx, dummy):
     result = result % c
     result &= UINT256MAX
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeExp(ctx, dummy):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a ** b
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSignExt(ctx, dummy):
     a = ctx.stack.pop()
@@ -195,7 +195,7 @@ def opcodeSignExt(ctx, dummy):
         result = (UINT256MAX << mask) | b
         result &= UINT256MAX
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSdiv(ctx, dummy):
     a = ctx.stack.pop()
@@ -211,7 +211,7 @@ def opcodeSdiv(ctx, dummy):
         # 2s complement
         result = Utils.convertIntTo2sComplement(result)
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSmod(ctx, dummy):
     a = ctx.stack.pop()
@@ -227,7 +227,7 @@ def opcodeSmod(ctx, dummy):
         # 2s complement
         result = Utils.convertIntTo2sComplement(result)
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeLT(ctx, dummy):
     a = ctx.stack.pop()
@@ -237,7 +237,7 @@ def opcodeLT(ctx, dummy):
     else:
         result = 0
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeGT(ctx, dummy):
     a = ctx.stack.pop()
@@ -247,7 +247,7 @@ def opcodeGT(ctx, dummy):
     else:
         result = 0
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSLT(ctx, dummy):
     a = ctx.stack.pop()
@@ -259,7 +259,7 @@ def opcodeSLT(ctx, dummy):
     else:
         result = 0
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSGT(ctx, dummy):
     a = ctx.stack.pop()
@@ -271,7 +271,7 @@ def opcodeSGT(ctx, dummy):
     else:
         result = 0
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeEQ(ctx, dummy):
     a = ctx.stack.pop()
@@ -281,7 +281,7 @@ def opcodeEQ(ctx, dummy):
     else:
         result = 0
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeIsZero(ctx, dummy):
     a = ctx.stack.pop()
@@ -289,34 +289,34 @@ def opcodeIsZero(ctx, dummy):
     if a == 0:
         result = 1
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeNot(ctx, dummy):
     a = ctx.stack.pop()
     a ^= (2 ** 256)-1
     ctx.stack.push(a)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeAnd(ctx, dummy):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a & b
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeOr(ctx, dummy):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a | b
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeXor(ctx, dummy):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a ^ b
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSHL(ctx, dummy):
     a = ctx.stack.pop()
@@ -327,7 +327,7 @@ def opcodeSHL(ctx, dummy):
         result = b << a
         result &= UINT256MAX
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSHR(ctx, dummy):
     a = ctx.stack.pop()
@@ -337,7 +337,7 @@ def opcodeSHR(ctx, dummy):
     else:
         result = b >> a
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSAR(ctx, dummy):
     a = ctx.stack.pop()
@@ -354,7 +354,7 @@ def opcodeSAR(ctx, dummy):
             for i in range(a):
                 result |= ( 1 << (255-i))
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeByte(ctx, dummy):
     a = ctx.stack.pop()
@@ -366,33 +366,35 @@ def opcodeByte(ctx, dummy):
         offset = (31 - a) * 8
         result = (b & (0xff << offset)) >> offset
     ctx.stack.push(result)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeDup(ctx, index):
     try:
         a = ctx.stack.peek(-index)
     except IndexError:
         print("Not enough values on the stack")
-        return OpcodeResponse(True, None)
+        return OpcodeResponse(success=False, stopRun=True, data=None)
     ctx.stack.push(a)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeSwap(ctx, index):
     try:
         bottom = ctx.stack.peek(-(index+1))
     except IndexError:
         print("Not enough values on the stack")
-        return OpcodeResponse(True, None)
+        return OpcodeResponse(success=False, stopRun=True, data=None)
     ctx.stack.replace(-(index+1), ctx.stack.peek(-1))
     ctx.stack.replace(-1, bottom)
-    return OpcodeResponse(False, None)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeInvalid(ctx, dummy):
-    return OpcodeResponse(True, None)
+    # Consume all gas, Sorry !
+    return OpcodeResponse(success=False, stopRun=True, data=None)
 
 @dataclass
 class OpcodeResponse:
-    stop: bool #stop will be True for stop opcode
+    success: bool
+    stopRun: bool #stop will be True for stop opcode
     data: int # pop() opcode can return data popped through this variable
 
 class OpcodeData:
@@ -521,13 +523,14 @@ def evm(code, outputStackLen):
         if opcodeObj:
             prehook(opcodeObj)
             opcodeReturn = opcodeObj.run(ctx, opcodeObj.pushBytes)
-            if opcodeReturn.stop == True:
+            success = opcodeReturn.success
+            if opcodeReturn.stopRun == True:
                 break
         else:
             print("Opcode implementation not found for ", hex(op))
             # return fake success but empty stack so that test case
             # panics with proper test name and error message
-            return (success, [])
+            return (True, [])
         
     result=[]
     if ctx.stack.len():
