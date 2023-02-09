@@ -424,6 +424,20 @@ def opcodeJump(ctx, dummy):
         ctx.pc = a+1
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeJumpI(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    if b > 0:
+        # jump pc should be JUMPDEST
+        if a not in ctx.jumpDest:
+            return OpcodeResponse(success=False, stopRun=True, data=None)
+        else:
+            ctx.pc = a+1
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeJumpDest(ctx, dummy):
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -536,6 +550,8 @@ opcode[0xfe] = OpcodeData(0xfe, "INVALID", opcodeInvalid)
 opcode[0x58] = OpcodeData(0x58, "PC", opcodePC)
 opcode[0x5a] = OpcodeData(0x5a, "GAS", opcodeGas)
 opcode[0x56] = OpcodeData(0x56, "JUMP", opcodeJump)
+opcode[0x57] = OpcodeData(0x57, "JUMPI", opcodeJumpI)
+opcode[0x5B] = OpcodeData(0x57, "JUMPDEST", opcodeJumpDest)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
