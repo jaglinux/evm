@@ -66,6 +66,24 @@ class Stack:
 class Memory:
     def __init__(self):
         self.array = bytearray();
+        self.size = 0
+
+    #Internal function
+    def _expand(self, offset):
+        if offset+32 > self.size:
+            self.array[(offset+32//32)*32:32] = bytes(32)
+            self.size = len(self.array)
+
+    def store(self, offset, data, dataSize):
+        self._expand(offset)
+        data = data.to_bytes(dataSize, 'big')
+        self.array[offset:offset+dataSize] = data
+
+    def load(self, offset):
+        self._expand(offset)
+        data = self.array[offset:offset+32]
+        data = int.from_bytes(data, "big")
+        return data
 
 class Context:
     def __init__(self, code, pc=0, jumpDest=[]):
@@ -432,10 +450,32 @@ def opcodeJumpI(ctx, dummy):
         if a not in ctx.jumpDest:
             return OpcodeResponse(success=False, stopRun=True, data=None)
         else:
-            ctx.pc = a+1
+            ctx.pc = a
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeJumpDest(ctx, dummy):
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeMstore(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    ctx.memory.store(a, b, 32)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeMload(ctx, dummy):
+    a = ctx.stack.pop()
+    data = ctx.memory.load(a)
+    ctx.stack.push(data)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeMstore8(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop() & 0xff
+    ctx.memory.store(a, b, 1)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeMsize(ctx, dummy):
+    ctx.stack.push(ctx.memory.size)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
 @dataclass
@@ -552,6 +592,11 @@ opcode[0x5a] = OpcodeData(0x5a, "GAS", opcodeGas)
 opcode[0x56] = OpcodeData(0x56, "JUMP", opcodeJump)
 opcode[0x57] = OpcodeData(0x57, "JUMPI", opcodeJumpI)
 opcode[0x5B] = OpcodeData(0x57, "JUMPDEST", opcodeJumpDest)
+opcode[0x52] = OpcodeData(0x52, "MSTORE", opcodeMstore)
+opcode[0x52] = OpcodeData(0x52, "MSTORE", opcodeMstore)
+opcode[0x51] = OpcodeData(0x51, "MLOAD", opcodeMload)
+opcode[0x53] = OpcodeData(0x52, "MSTORE8", opcodeMstore8)
+opcode[0x59] = OpcodeData(0x59, "MSIZE", opcodeMsize)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
