@@ -68,11 +68,12 @@ class Memory:
         self.array = bytearray();
 
 class Context:
-    def __init__(self, code, pc=0):
+    def __init__(self, code, pc=0, jumpDest=[]):
         self.stack = Stack(1024)
         self.memory = Memory()
         self.code = code
         self.pc = pc
+        self.jumpDest = jumpDest
 
 class Utils:
     @staticmethod
@@ -91,6 +92,19 @@ class Utils:
         if a < 0:
             return (1 << 256) + a
         return a
+
+    @staticmethod
+    def scanForJumpDest(code):
+        result = []
+        pc=0
+        while pc < len(code):
+            currentCode = code[pc]
+            if currentCode >= 0x60 and currentCode <=0x7f:
+                pc += (currentCode - 0x60)+1
+            elif code[pc] == 0x5b:
+                result.append(pc)
+            pc+=1
+        return result
 
 def opcodeStop(ctx, dummy):
     return OpcodeResponse(success=True, stopRun=True, data=None)
@@ -404,7 +418,7 @@ def opcodeGas(ctx, dummy):
 def opcodeJump(ctx, dummy):
     a = ctx.stack.pop()
     # jump pc should be JUMPDEST
-    if ctx.code[a] != 0x5b:
+    if a not in ctx.jumpDest:
         return OpcodeResponse(success=False, stopRun=True, data=None)
     else:
         ctx.pc = a+1
@@ -534,7 +548,8 @@ def evm(code, outputStackLen):
     testsRun+=1
 
     success = True
-    ctx = Context(code)
+    jumpDest = Utils.scanForJumpDest(code)
+    ctx = Context(code, jumpDest=jumpDest)
 
     while ctx.pc < len(code):
         op = code[ctx.pc]
