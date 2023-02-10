@@ -69,18 +69,20 @@ class Memory:
         self.size = 0
 
     #Internal function
-    def _expand(self, offset):
-        if offset+32 > self.size:
-            self.array[(offset+32//32)*32:32] = bytes(32)
+    def _expand(self, offset, dataSize):
+        if offset+dataSize > self.size:
+            offset = ((((offset+dataSize)-1) // 32) * 32)
+            self.array[self.size:offset+32] = bytes(offset + 32 - self.size)
             self.size = len(self.array)
 
+    # Store can be 1 or 32 bytes dataSize
     def store(self, offset, data, dataSize):
-        self._expand(offset)
+        self._expand(offset, dataSize)
         data = data.to_bytes(dataSize, 'big')
         self.array[offset:offset+dataSize] = data
 
     def load(self, offset):
-        self._expand(offset)
+        self._expand(offset, 32)
         data = self.array[offset:offset+32]
         data = int.from_bytes(data, "big")
         return data
