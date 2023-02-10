@@ -15,6 +15,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from eth_utils import keccak
 
 # Constants
 UINT256MAX = (2 ** 256) -1
@@ -480,6 +481,15 @@ def opcodeMsize(ctx, dummy):
     ctx.stack.push(ctx.memory.size)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeSha3(ctx, dummy):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    data = ctx.memory.load(a)
+    b *= 8
+    data >>= (256-b)
+    ctx.stack.push(int.from_bytes(keccak(data), "big"))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -599,6 +609,7 @@ opcode[0x52] = OpcodeData(0x52, "MSTORE", opcodeMstore)
 opcode[0x51] = OpcodeData(0x51, "MLOAD", opcodeMload)
 opcode[0x53] = OpcodeData(0x52, "MSTORE8", opcodeMstore8)
 opcode[0x59] = OpcodeData(0x59, "MSIZE", opcodeMsize)
+opcode[0x20] = OpcodeData(0x20, "SHA3", opcodeSha3)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
