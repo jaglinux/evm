@@ -127,11 +127,12 @@ class Utils:
             pc+=1
         return result
 
-def opcodeStop(ctx, dummy):
+def opcodeStop(ctx, inputParam):
     return OpcodeResponse(success=True, stopRun=True, data=None)
 
-def opcodePush(ctx, pushBytes):
+def opcodePush(ctx, inputParam):
     data = 0
+    pushBytes = inputParam.Opcode - 0x60 + 1
     for i in range(pushBytes):
         # Big Endian
         data = (data << 8) | ctx.code[ctx.pc]
@@ -139,11 +140,11 @@ def opcodePush(ctx, pushBytes):
     ctx.stack.push(data)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodePop(ctx, dummy):
+def opcodePop(ctx, inputParam):
     data = ctx.stack.pop()
     return OpcodeResponse(success=True, stopRun=False, data=data)
 
-def opcodeAdd(ctx, dummy):
+def opcodeAdd(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = (a+b)
@@ -152,7 +153,7 @@ def opcodeAdd(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeMul(ctx, dummy):
+def opcodeMul(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = (a*b)
@@ -161,7 +162,7 @@ def opcodeMul(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSub(ctx, dummy):
+def opcodeSub(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = (a-b)
@@ -173,7 +174,7 @@ def opcodeSub(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeDiv(ctx, dummy):
+def opcodeDiv(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     # Handle Divide by 0
@@ -184,7 +185,7 @@ def opcodeDiv(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeMod(ctx, dummy):
+def opcodeMod(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     if b == 0:
@@ -194,7 +195,7 @@ def opcodeMod(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeAddMod(ctx, dummy):
+def opcodeAddMod(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a+b
@@ -204,7 +205,7 @@ def opcodeAddMod(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeMulMod(ctx, dummy):
+def opcodeMulMod(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a*b
@@ -214,14 +215,14 @@ def opcodeMulMod(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeExp(ctx, dummy):
+def opcodeExp(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a ** b
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSignExt(ctx, dummy):
+def opcodeSignExt(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = b
@@ -232,7 +233,7 @@ def opcodeSignExt(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSdiv(ctx, dummy):
+def opcodeSdiv(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     # Inputs are in 2s complement, Get the corresponding int value
@@ -248,7 +249,7 @@ def opcodeSdiv(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSmod(ctx, dummy):
+def opcodeSmod(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     # Inputs are in 2s complement, Get the corresponding int value
@@ -264,7 +265,7 @@ def opcodeSmod(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeLT(ctx, dummy):
+def opcodeLT(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     if a < b:
@@ -274,7 +275,7 @@ def opcodeLT(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeGT(ctx, dummy):
+def opcodeGT(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     if a > b:
@@ -284,7 +285,7 @@ def opcodeGT(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSLT(ctx, dummy):
+def opcodeSLT(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     a = Utils.convert2sComplementToInt(a)
@@ -296,7 +297,7 @@ def opcodeSLT(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSGT(ctx, dummy):
+def opcodeSGT(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     a = Utils.convert2sComplementToInt(a)
@@ -308,7 +309,7 @@ def opcodeSGT(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeEQ(ctx, dummy):
+def opcodeEQ(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     if a == b:
@@ -318,7 +319,7 @@ def opcodeEQ(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeIsZero(ctx, dummy):
+def opcodeIsZero(ctx, inputParam):
     a = ctx.stack.pop()
     result = 0
     if a == 0:
@@ -326,34 +327,34 @@ def opcodeIsZero(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeNot(ctx, dummy):
+def opcodeNot(ctx, inputParam):
     a = ctx.stack.pop()
     a ^= (2 ** 256)-1
     ctx.stack.push(a)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeAnd(ctx, dummy):
+def opcodeAnd(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a & b
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeOr(ctx, dummy):
+def opcodeOr(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a | b
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeXor(ctx, dummy):
+def opcodeXor(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     result = a ^ b
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSHL(ctx, dummy):
+def opcodeSHL(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     if a > 255:
@@ -364,7 +365,7 @@ def opcodeSHL(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSHR(ctx, dummy):
+def opcodeSHR(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     if a > 255:
@@ -374,7 +375,7 @@ def opcodeSHR(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSAR(ctx, dummy):
+def opcodeSAR(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     isNegative = b & (1 << 255)
@@ -391,7 +392,7 @@ def opcodeSAR(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeByte(ctx, dummy):
+def opcodeByte(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
 
@@ -403,7 +404,8 @@ def opcodeByte(ctx, dummy):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeDup(ctx, index):
+def opcodeDup(ctx, inputParam):
+    index = inputParam.Opcode - 0x80 + 1
     try:
         a = ctx.stack.peek(-index)
     except IndexError:
@@ -412,7 +414,8 @@ def opcodeDup(ctx, index):
     ctx.stack.push(a)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSwap(ctx, index):
+def opcodeSwap(ctx, inputParam):
+    index = inputParam.Opcode - 0x90 + 1
     try:
         bottom = ctx.stack.peek(-(index+1))
     except IndexError:
@@ -422,21 +425,21 @@ def opcodeSwap(ctx, index):
     ctx.stack.replace(-1, bottom)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeInvalid(ctx, dummy):
+def opcodeInvalid(ctx, inputParam):
     # Consume all gas, Sorry !
     return OpcodeResponse(success=False, stopRun=True, data=None)
 
-def opcodePC(ctx, dummy):
+def opcodePC(ctx, inputParam):
     # Already increment PC before, return PC - 1
     ctx.stack.push(ctx.pc - 1)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeGas(ctx, dummy):
+def opcodeGas(ctx, inputParam):
     # not implemented, return UINTMAX
     ctx.stack.push(UINT256MAX)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeJump(ctx, dummy):
+def opcodeJump(ctx, inputParam):
     a = ctx.stack.pop()
     # jump pc should be JUMPDEST
     if a not in ctx.jumpDest:
@@ -445,7 +448,7 @@ def opcodeJump(ctx, dummy):
         ctx.pc = a+1
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeJumpI(ctx, dummy):
+def opcodeJumpI(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     if b > 0:
@@ -456,32 +459,32 @@ def opcodeJumpI(ctx, dummy):
             ctx.pc = a
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeJumpDest(ctx, dummy):
+def opcodeJumpDest(ctx, inputParam):
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeMstore(ctx, dummy):
+def opcodeMstore(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     ctx.memory.store(a, b, 32)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeMload(ctx, dummy):
+def opcodeMload(ctx, inputParam):
     a = ctx.stack.pop()
     data = ctx.memory.load(a)
     ctx.stack.push(data)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeMstore8(ctx, dummy):
+def opcodeMstore8(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop() & 0xff
     ctx.memory.store(a, b, 1)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeMsize(ctx, dummy):
+def opcodeMsize(ctx, inputParam):
     ctx.stack.push(ctx.memory.size)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeSha3(ctx, dummy):
+def opcodeSha3(ctx, inputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
     data = ctx.memory.load(a)
@@ -506,40 +509,45 @@ class OpcodeData:
         # bytes to be pushed into stack.
         self.pushBytes = pushBytes
 
+@dataclass
+class InputParam:
+    Opcode: int
+    Txn: dict
+
 opcode = {}
 opcode[0x00] = OpcodeData(0x00, "STOP", opcodeStop)
-opcode[0x60] = OpcodeData(0x60, "PUSH1", opcodePush, 1)
-opcode[0x61] = OpcodeData(0x61, "PUSH2", opcodePush, 2)
-opcode[0x62] = OpcodeData(0x62, "PUSH3", opcodePush, 3)
-opcode[0x63] = OpcodeData(0x63, "PUSH4", opcodePush, 4)
-opcode[0x64] = OpcodeData(0x64, "PUSH5", opcodePush, 5)
-opcode[0x65] = OpcodeData(0x65, "PUSH6", opcodePush, 6)
-opcode[0x66] = OpcodeData(0x66, "PUSH7", opcodePush, 7)
-opcode[0x67] = OpcodeData(0x67, "PUSH8", opcodePush, 8)
-opcode[0x68] = OpcodeData(0x68, "PUSH9", opcodePush, 9)
-opcode[0x69] = OpcodeData(0x69, "PUSH10", opcodePush, 10)
-opcode[0x6A] = OpcodeData(0x6A, "PUSH11", opcodePush, 11)
-opcode[0x6B] = OpcodeData(0x6B, "PUSH12", opcodePush, 12)
-opcode[0x6C] = OpcodeData(0x6C, "PUSH13", opcodePush, 13)
-opcode[0x6D] = OpcodeData(0x6D, "PUSH14", opcodePush, 14)
-opcode[0x6E] = OpcodeData(0x6E, "PUSH15", opcodePush, 15)
-opcode[0x6F] = OpcodeData(0x6F, "PUSH16", opcodePush, 16)
-opcode[0x70] = OpcodeData(0x70, "PUSH17", opcodePush, 17)
-opcode[0x71] = OpcodeData(0x71, "PUSH18", opcodePush, 18)
-opcode[0x72] = OpcodeData(0x72, "PUSH19", opcodePush, 19)
-opcode[0x73] = OpcodeData(0x73, "PUSH20", opcodePush, 20)
-opcode[0x74] = OpcodeData(0x74, "PUSH21", opcodePush, 21)
-opcode[0x75] = OpcodeData(0x75, "PUSH22", opcodePush, 22)
-opcode[0x76] = OpcodeData(0x76, "PUSH23", opcodePush, 23)
-opcode[0x77] = OpcodeData(0x77, "PUSH24", opcodePush, 24)
-opcode[0x78] = OpcodeData(0x78, "PUSH25", opcodePush, 25)
-opcode[0x79] = OpcodeData(0x79, "PUSH26", opcodePush, 26)
-opcode[0x7A] = OpcodeData(0x7A, "PUSH27", opcodePush, 27)
-opcode[0x7B] = OpcodeData(0x7B, "PUSH28", opcodePush, 28)
-opcode[0x7C] = OpcodeData(0x7C, "PUSH29", opcodePush, 29)
-opcode[0x7D] = OpcodeData(0x7D, "PUSH30", opcodePush, 30)
-opcode[0x7E] = OpcodeData(0x7E, "PUSH31", opcodePush, 31)
-opcode[0x7F] = OpcodeData(0x7F, "PUSH32", opcodePush, 32)
+opcode[0x60] = OpcodeData(0x60, "PUSH1", opcodePush)
+opcode[0x61] = OpcodeData(0x61, "PUSH2", opcodePush)
+opcode[0x62] = OpcodeData(0x62, "PUSH3", opcodePush)
+opcode[0x63] = OpcodeData(0x63, "PUSH4", opcodePush)
+opcode[0x64] = OpcodeData(0x64, "PUSH5", opcodePush)
+opcode[0x65] = OpcodeData(0x65, "PUSH6", opcodePush)
+opcode[0x66] = OpcodeData(0x66, "PUSH7", opcodePush)
+opcode[0x67] = OpcodeData(0x67, "PUSH8", opcodePush)
+opcode[0x68] = OpcodeData(0x68, "PUSH9", opcodePush)
+opcode[0x69] = OpcodeData(0x69, "PUSH10", opcodePush)
+opcode[0x6A] = OpcodeData(0x6A, "PUSH11", opcodePush)
+opcode[0x6B] = OpcodeData(0x6B, "PUSH12", opcodePush)
+opcode[0x6C] = OpcodeData(0x6C, "PUSH13", opcodePush)
+opcode[0x6D] = OpcodeData(0x6D, "PUSH14", opcodePush)
+opcode[0x6E] = OpcodeData(0x6E, "PUSH15", opcodePush)
+opcode[0x6F] = OpcodeData(0x6F, "PUSH16", opcodePush)
+opcode[0x70] = OpcodeData(0x70, "PUSH17", opcodePush)
+opcode[0x71] = OpcodeData(0x71, "PUSH18", opcodePush)
+opcode[0x72] = OpcodeData(0x72, "PUSH19", opcodePush)
+opcode[0x73] = OpcodeData(0x73, "PUSH20", opcodePush)
+opcode[0x74] = OpcodeData(0x74, "PUSH21", opcodePush)
+opcode[0x75] = OpcodeData(0x75, "PUSH22", opcodePush)
+opcode[0x76] = OpcodeData(0x76, "PUSH23", opcodePush)
+opcode[0x77] = OpcodeData(0x77, "PUSH24", opcodePush)
+opcode[0x78] = OpcodeData(0x78, "PUSH25", opcodePush)
+opcode[0x79] = OpcodeData(0x79, "PUSH26", opcodePush)
+opcode[0x7A] = OpcodeData(0x7A, "PUSH27", opcodePush)
+opcode[0x7B] = OpcodeData(0x7B, "PUSH28", opcodePush)
+opcode[0x7C] = OpcodeData(0x7C, "PUSH29", opcodePush)
+opcode[0x7D] = OpcodeData(0x7D, "PUSH30", opcodePush)
+opcode[0x7E] = OpcodeData(0x7E, "PUSH31", opcodePush)
+opcode[0x7F] = OpcodeData(0x7F, "PUSH32", opcodePush)
 opcode[0x50] = OpcodeData(0x50, "POP", opcodePop)
 opcode[0x01] = OpcodeData(0x01, "ADD", opcodeAdd)
 opcode[0x02] = OpcodeData(0x02, "MUL", opcodeMul)
@@ -566,38 +574,38 @@ opcode[0x1B] = OpcodeData(0x1B, "SHL", opcodeSHL)
 opcode[0x1C] = OpcodeData(0x1C, "SHR", opcodeSHR)
 opcode[0x1D] = OpcodeData(0x1D, "SAR", opcodeSAR)
 opcode[0x1A] = OpcodeData(0x1A, "BYTE", opcodeByte)
-opcode[0x80] = OpcodeData(0x80, "DUP1", opcodeDup, 1)
-opcode[0x81] = OpcodeData(0x81, "DUP2", opcodeDup, 2)
-opcode[0x82] = OpcodeData(0x82, "DUP3", opcodeDup, 3)
-opcode[0x83] = OpcodeData(0x83, "DUP4", opcodeDup, 4)
-opcode[0x84] = OpcodeData(0x84, "DUP5", opcodeDup, 5)
-opcode[0x85] = OpcodeData(0x85, "DUP6", opcodeDup, 6)
-opcode[0x86] = OpcodeData(0x86, "DUP7", opcodeDup, 7)
-opcode[0x87] = OpcodeData(0x87, "DUP8", opcodeDup, 8)
-opcode[0x88] = OpcodeData(0x88, "DUP9", opcodeDup, 9)
-opcode[0x89] = OpcodeData(0x89, "DUP10", opcodeDup, 10)
-opcode[0x8a] = OpcodeData(0x8a, "DUP11", opcodeDup, 11)
-opcode[0x8b] = OpcodeData(0x8b, "DUP12", opcodeDup, 12)
-opcode[0x8c] = OpcodeData(0x8c, "DUP13", opcodeDup, 13)
-opcode[0x8d] = OpcodeData(0x8d, "DUP14", opcodeDup, 14)
-opcode[0x8e] = OpcodeData(0x8e, "DUP15", opcodeDup, 15)
-opcode[0x8f] = OpcodeData(0x8f, "DUP16", opcodeDup, 16)
-opcode[0x90] = OpcodeData(0x90, "SWAP1", opcodeSwap, 1)
-opcode[0x91] = OpcodeData(0x91, "SWAP2", opcodeSwap, 2)
-opcode[0x92] = OpcodeData(0x92, "SWAP3", opcodeSwap, 3)
-opcode[0x93] = OpcodeData(0x93, "SWAP4", opcodeSwap, 4)
-opcode[0x94] = OpcodeData(0x94, "SWAP5", opcodeSwap, 5)
-opcode[0x95] = OpcodeData(0x95, "SWAP6", opcodeSwap, 6)
-opcode[0x96] = OpcodeData(0x96, "SWAP7", opcodeSwap, 7)
-opcode[0x97] = OpcodeData(0x97, "SWAP8", opcodeSwap, 8)
-opcode[0x98] = OpcodeData(0x98, "SWAP9", opcodeSwap, 9)
-opcode[0x99] = OpcodeData(0x99, "SWAP10", opcodeSwap, 10)
-opcode[0x9a] = OpcodeData(0x9a, "SWAP11", opcodeSwap, 11)
-opcode[0x9b] = OpcodeData(0x9b, "SWAP12", opcodeSwap, 12)
-opcode[0x9c] = OpcodeData(0x9c, "SWAP13", opcodeSwap, 13)
-opcode[0x9d] = OpcodeData(0x9d, "SWAP14", opcodeSwap, 14)
-opcode[0x9e] = OpcodeData(0x9e, "SWAP15", opcodeSwap, 15)
-opcode[0x9f] = OpcodeData(0x9f, "SWAP16", opcodeSwap, 16)
+opcode[0x80] = OpcodeData(0x80, "DUP1", opcodeDup)
+opcode[0x81] = OpcodeData(0x81, "DUP2", opcodeDup)
+opcode[0x82] = OpcodeData(0x82, "DUP3", opcodeDup)
+opcode[0x83] = OpcodeData(0x83, "DUP4", opcodeDup)
+opcode[0x84] = OpcodeData(0x84, "DUP5", opcodeDup)
+opcode[0x85] = OpcodeData(0x85, "DUP6", opcodeDup)
+opcode[0x86] = OpcodeData(0x86, "DUP7", opcodeDup)
+opcode[0x87] = OpcodeData(0x87, "DUP8", opcodeDup)
+opcode[0x88] = OpcodeData(0x88, "DUP9", opcodeDup)
+opcode[0x89] = OpcodeData(0x89, "DUP10", opcodeDup)
+opcode[0x8a] = OpcodeData(0x8a, "DUP11", opcodeDup)
+opcode[0x8b] = OpcodeData(0x8b, "DUP12", opcodeDup)
+opcode[0x8c] = OpcodeData(0x8c, "DUP13", opcodeDup)
+opcode[0x8d] = OpcodeData(0x8d, "DUP14", opcodeDup)
+opcode[0x8e] = OpcodeData(0x8e, "DUP15", opcodeDup)
+opcode[0x8f] = OpcodeData(0x8f, "DUP16", opcodeDup)
+opcode[0x90] = OpcodeData(0x90, "SWAP1", opcodeSwap)
+opcode[0x91] = OpcodeData(0x91, "SWAP2", opcodeSwap)
+opcode[0x92] = OpcodeData(0x92, "SWAP3", opcodeSwap)
+opcode[0x93] = OpcodeData(0x93, "SWAP4", opcodeSwap)
+opcode[0x94] = OpcodeData(0x94, "SWAP5", opcodeSwap)
+opcode[0x95] = OpcodeData(0x95, "SWAP6", opcodeSwap)
+opcode[0x96] = OpcodeData(0x96, "SWAP7", opcodeSwap)
+opcode[0x97] = OpcodeData(0x97, "SWAP8", opcodeSwap)
+opcode[0x98] = OpcodeData(0x98, "SWAP9", opcodeSwap)
+opcode[0x99] = OpcodeData(0x99, "SWAP10", opcodeSwap)
+opcode[0x9a] = OpcodeData(0x9a, "SWAP11", opcodeSwap)
+opcode[0x9b] = OpcodeData(0x9b, "SWAP12", opcodeSwap)
+opcode[0x9c] = OpcodeData(0x9c, "SWAP13", opcodeSwap)
+opcode[0x9d] = OpcodeData(0x9d, "SWAP14", opcodeSwap)
+opcode[0x9e] = OpcodeData(0x9e, "SWAP15", opcodeSwap)
+opcode[0x9f] = OpcodeData(0x9f, "SWAP16", opcodeSwap)
 opcode[0xfe] = OpcodeData(0xfe, "INVALID", opcodeInvalid)
 opcode[0x58] = OpcodeData(0x58, "PC", opcodePC)
 opcode[0x5a] = OpcodeData(0x5a, "GAS", opcodeGas)
@@ -614,7 +622,7 @@ opcode[0x20] = OpcodeData(0x20, "SHA3", opcodeSha3)
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
 
-def evm(code, outputStackLen):
+def evm(code, outputStackLen, tx):
     global testsRun, testsMax
     if testsRun >= testsMax:
         print(f'Implemented {len(opcode)} opcodes ')
@@ -624,7 +632,8 @@ def evm(code, outputStackLen):
     success = True
     jumpDest = Utils.scanForJumpDest(code)
     ctx = Context(code, jumpDest=jumpDest)
-
+    inputParam = InputParam(Opcode=None, Txn=tx)
+    print(inputParam)
     while ctx.pc < len(code):
         op = code[ctx.pc]
         # pc will always increment by 1 here
@@ -633,7 +642,9 @@ def evm(code, outputStackLen):
         opcodeObj = opcode.get(op)
         if opcodeObj:
             prehook(opcodeObj)
-            opcodeReturn = opcodeObj.run(ctx, opcodeObj.pushBytes)
+            # Use the same object for all opcodes, so txn etc will be retained
+            inputParam.Opcode = opcodeObj.opcode
+            opcodeReturn = opcodeObj.run(ctx, inputParam)
             success = opcodeReturn.success
             if opcodeReturn.stopRun == True:
                 break
@@ -666,8 +677,12 @@ def test():
         for i, test in enumerate(data):
             # Note: as the test cases get more complex, you'll need to modify this
             # to pass down more arguments to the evm function
+            if 'tx' in test:
+                tx = test['tx']
+            else:
+                tx = None
             code = bytes.fromhex(test['code']['bin'])
-            (success, stack) = evm(code, len(test['expect']['stack']))
+            (success, stack) = evm(code, len(test['expect']['stack']), tx)
 
             expected_stack = [int(x, 16) for x in test['expect']['stack']]
             
