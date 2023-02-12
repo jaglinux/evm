@@ -493,6 +493,34 @@ def opcodeSha3(ctx, inputParam):
     ctx.stack.push(int.from_bytes(keccak(data), "big"))
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeAddress(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Txn['to'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeCaller(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Txn['from'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeOrigin(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Txn['origin'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeGasPrice(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Txn['gasprice'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeBaseFee(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Block['basefee'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeCoinbase(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Block['coinbase'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeTimestamp(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Block['timestamp'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -513,6 +541,7 @@ class OpcodeData:
 class InputParam:
     Opcode: int
     Txn: dict
+    Block: dict
 
 opcode = {}
 opcode[0x00] = OpcodeData(0x00, "STOP", opcodeStop)
@@ -618,11 +647,18 @@ opcode[0x51] = OpcodeData(0x51, "MLOAD", opcodeMload)
 opcode[0x53] = OpcodeData(0x52, "MSTORE8", opcodeMstore8)
 opcode[0x59] = OpcodeData(0x59, "MSIZE", opcodeMsize)
 opcode[0x20] = OpcodeData(0x20, "SHA3", opcodeSha3)
+opcode[0x30] = OpcodeData(0x30, "ADDRESS", opcodeAddress)
+opcode[0x33] = OpcodeData(0x33, "CALLER", opcodeCaller)
+opcode[0x32] = OpcodeData(0x32, "ORIGIN", opcodeOrigin)
+opcode[0x3a] = OpcodeData(0x3a, "GASPRICE", opcodeGasPrice)
+opcode[0x48] = OpcodeData(0x48, "BASEFEE", opcodeBaseFee)
+opcode[0x41] = OpcodeData(0x41, "COINBASE", opcodeCoinbase)
+opcode[0x42] = OpcodeData(0x42, "TIMESTAMP", opcodeTimestamp)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
 
-def evm(code, outputStackLen, tx):
+def evm(code, outputStackLen, tx, block):
     global testsRun, testsMax
     if testsRun >= testsMax:
         print(f'Implemented {len(opcode)} opcodes ')
@@ -632,7 +668,7 @@ def evm(code, outputStackLen, tx):
     success = True
     jumpDest = Utils.scanForJumpDest(code)
     ctx = Context(code, jumpDest=jumpDest)
-    inputParam = InputParam(Opcode=None, Txn=tx)
+    inputParam = InputParam(Opcode=None, Txn=tx, Block=block)
     print(inputParam)
     while ctx.pc < len(code):
         op = code[ctx.pc]
@@ -681,8 +717,14 @@ def test():
                 tx = test['tx']
             else:
                 tx = None
+
+            if 'block' in test:
+                block = test['block']
+            else:
+                block = None
+
             code = bytes.fromhex(test['code']['bin'])
-            (success, stack) = evm(code, len(test['expect']['stack']), tx)
+            (success, stack) = evm(code, len(test['expect']['stack']), tx, block)
 
             expected_stack = [int(x, 16) for x in test['expect']['stack']]
             
