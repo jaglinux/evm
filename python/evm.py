@@ -556,6 +556,27 @@ def opcodeBalance(ctx, inputParam):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeCallValue(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Txn['value'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeCallDataLoad(ctx, inputParam):
+    calldataOrig = inputParam.Txn['data']
+    a = ctx.stack.pop()
+    calldata = calldataOrig[a*2:a*2+64]
+    calldata = int(calldata, 16)
+    if (a*2)+64 > len(calldataOrig):
+        calldata <<= (((a*2)+64-len(calldataOrig))//2)*8
+    ctx.stack.push(calldata)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeCallDataSize(ctx, inputParam):
+    calldata = ''
+    if inputParam.Txn is not None and 'data' in inputParam.Txn:
+        calldata = inputParam.Txn['data']
+    ctx.stack.push(len(calldata)//2)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -693,6 +714,9 @@ opcode[0x45] = OpcodeData(0x45, "DIFFICULTY", opcodeGasLimit)
 opcode[0x46] = OpcodeData(0x46, "CHAINID", opcodeChainId)
 opcode[0x40] = OpcodeData(0x40, "BLOCKHASH", opcodeBlockHash)
 opcode[0x31] = OpcodeData(0x31, "BALANCE", opcodeBalance)
+opcode[0x34] = OpcodeData(0x34, "CALLVALUE", opcodeCallValue)
+opcode[0x35] = OpcodeData(0x35, "CALLDATALOAD", opcodeCallDataLoad)
+opcode[0x36] = OpcodeData(0x36, "CALLDATASIZE", opcodeCallDataSize)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
