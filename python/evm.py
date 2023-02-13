@@ -16,6 +16,7 @@ import os
 import sys
 from dataclasses import dataclass
 from eth_utils import keccak
+from typing import Any
 
 # Constants
 UINT256MAX = (2 ** 256) -1
@@ -87,6 +88,10 @@ class Memory:
         data = self.array[offset:offset+32]
         data = int.from_bytes(data, "big")
         return data
+
+@dataclass
+class Account:
+    balance:int
 
 class Context:
     def __init__(self, code, pc=0, jumpDest=[]):
@@ -542,27 +547,34 @@ def opcodeBlockHash(ctx, inputParam):
     ctx.stack.push(0)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeBalance(ctx, inputParam):
+    a = ctx.stack.pop()
+    if a not in inputParam.State:
+        result = 0
+    else:
+        result = inputParam.State[a].balance
+    ctx.stack.push(result)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
     stopRun: bool #stop will be True for stop opcode
     data: int # pop() opcode can return data popped through this variable
 
+@dataclass
 class OpcodeData:
-    def __init__(self, opcode, name, run, pushBytes=0):
-        self.opcode = opcode
-        self.name = name
-        # function pointer
-        self.run = run
-        # if push opcode, pushBytes represents number of
-        # bytes to be pushed into stack.
-        self.pushBytes = pushBytes
+    opcode:int
+    name:str
+    # function pointer
+    run:any
 
 @dataclass
 class InputParam:
     Opcode: int
     Txn: dict
     Block: dict
+    State: dict
 
 opcode = {}
 opcode[0x00] = OpcodeData(0x00, "STOP", opcodeStop)
@@ -680,11 +692,12 @@ opcode[0x44] = OpcodeData(0x44, "DIFFICULTY", opcodeDifficulty)
 opcode[0x45] = OpcodeData(0x45, "DIFFICULTY", opcodeGasLimit)
 opcode[0x46] = OpcodeData(0x46, "CHAINID", opcodeChainId)
 opcode[0x40] = OpcodeData(0x40, "BLOCKHASH", opcodeBlockHash)
+opcode[0x31] = OpcodeData(0x31, "BALANCE", opcodeBalance)
 
-def prehook(opcodeObj):
-    print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
+def prehook(opcodeDataObj):
+    print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
 
-def evm(code, outputStackLen, tx, block):
+def evm(code, outputStackLen, tx, block, state):
     global testsRun, testsMax
     if testsRun >= testsMax:
         print(f'Implemented {len(opcode)} opcodes ')
@@ -694,19 +707,24 @@ def evm(code, outputStackLen, tx, block):
     success = True
     jumpDest = Utils.scanForJumpDest(code)
     ctx = Context(code, jumpDest=jumpDest)
-    inputParam = InputParam(Opcode=None, Txn=tx, Block=block)
-    print(inputParam)
+    # Create state
+    stateDict = {}
+    for address, values in state.items():
+        stateDict[int(address,16)] = Account(int(values['balance'], 16))
+
+    inputParam = InputParam(Opcode=None, Txn=tx, Block=block, State=stateDict)
+
     while ctx.pc < len(code):
         op = code[ctx.pc]
         # pc will always increment by 1 here
         # pc can also be incremented in PUSH opcodes
         ctx.pc += 1
-        opcodeObj = opcode.get(op)
-        if opcodeObj:
-            prehook(opcodeObj)
+        opcodeDataObj = opcode.get(op)
+        if opcodeDataObj:
+            prehook(opcodeDataObj)
             # Use the same object for all opcodes, so txn etc will be retained
-            inputParam.Opcode = opcodeObj.opcode
-            opcodeReturn = opcodeObj.run(ctx, inputParam)
+            inputParam.Opcode = opcodeDataObj.opcode
+            opcodeReturn = opcodeDataObj.run(ctx, inputParam)
             success = opcodeReturn.success
             if opcodeReturn.stopRun == True:
                 break
@@ -739,18 +757,12 @@ def test():
         for i, test in enumerate(data):
             # Note: as the test cases get more complex, you'll need to modify this
             # to pass down more arguments to the evm function
-            if 'tx' in test:
-                tx = test['tx']
-            else:
-                tx = None
-
-            if 'block' in test:
-                block = test['block']
-            else:
-                block = None
+            tx = test.get('tx', None)
+            block = test.get('block', None)
+            state = test.get('state', {})
 
             code = bytes.fromhex(test['code']['bin'])
-            (success, stack) = evm(code, len(test['expect']['stack']), tx, block)
+            (success, stack) = evm(code, len(test['expect']['stack']), tx, block, state)
 
             expected_stack = [int(x, 16) for x in test['expect']['stack']]
             
