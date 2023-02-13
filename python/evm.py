@@ -521,6 +521,27 @@ def opcodeTimestamp(ctx, inputParam):
     ctx.stack.push(int(inputParam.Block['timestamp'], 16))
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeNumber(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Block['number'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeDifficulty(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Block['difficulty'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeGasLimit(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Block['gaslimit'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeChainId(ctx, inputParam):
+    ctx.stack.push(int(inputParam.Block['chainid'], 16))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeBlockHash(ctx, inputParam):
+    # Not Implemented.
+    ctx.stack.push(0)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -654,6 +675,11 @@ opcode[0x3a] = OpcodeData(0x3a, "GASPRICE", opcodeGasPrice)
 opcode[0x48] = OpcodeData(0x48, "BASEFEE", opcodeBaseFee)
 opcode[0x41] = OpcodeData(0x41, "COINBASE", opcodeCoinbase)
 opcode[0x42] = OpcodeData(0x42, "TIMESTAMP", opcodeTimestamp)
+opcode[0x43] = OpcodeData(0x43, "NUMBER", opcodeNumber)
+opcode[0x44] = OpcodeData(0x44, "DIFFICULTY", opcodeDifficulty)
+opcode[0x45] = OpcodeData(0x45, "DIFFICULTY", opcodeGasLimit)
+opcode[0x46] = OpcodeData(0x46, "CHAINID", opcodeChainId)
+opcode[0x40] = OpcodeData(0x40, "BLOCKHASH", opcodeBlockHash)
 
 def prehook(opcodeObj):
     print(f'Running opcode {hex(opcodeObj.opcode)} {opcodeObj.name}')
