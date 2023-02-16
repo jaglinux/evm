@@ -77,7 +77,7 @@ class Memory:
             self.array[self.size:offset+32] = bytes(offset + 32 - self.size)
             self.size = len(self.array)
 
-    # Store can be 1 or 32 bytes dataSize
+    # Store can be 1 or 32 or "x" bytes dataSize
     def store(self, offset, data, dataSize):
         self._expand(offset, dataSize)
         data = data.to_bytes(dataSize, 'big')
@@ -577,6 +577,26 @@ def opcodeCallDataSize(ctx, inputParam):
     ctx.stack.push(len(calldata)//2)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeCallDataCopy(ctx, inputParam):
+    calldataOrig = inputParam.Txn['data']
+    print("jag --- ", calldataOrig, len(calldataOrig))
+    # destOffset in memory
+    a = ctx.stack.pop()
+    # offset in calldata
+    b = ctx.stack.pop()
+    # size
+    c = ctx.stack.pop()
+    calldata = calldataOrig[b*2:b*2+(c*2)]
+    calldata = int(calldata, 16)
+    if (b*2)+(c*2) > len(calldataOrig):
+        calldata <<= (((b*2)+(c*2)-len(calldataOrig))//2)*8
+    ctx.memory.store(a, calldata, c)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeCodeSize(ctx, inputParam):
+    ctx.stack.push(len(ctx.code))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -717,6 +737,8 @@ opcode[0x31] = OpcodeData(0x31, "BALANCE", opcodeBalance)
 opcode[0x34] = OpcodeData(0x34, "CALLVALUE", opcodeCallValue)
 opcode[0x35] = OpcodeData(0x35, "CALLDATALOAD", opcodeCallDataLoad)
 opcode[0x36] = OpcodeData(0x36, "CALLDATASIZE", opcodeCallDataSize)
+opcode[0x37] = OpcodeData(0x37, "CALLDATACOPY", opcodeCallDataCopy)
+opcode[0x38] = OpcodeData(0x38, "CODESIZE", opcodeCodeSize)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
