@@ -92,6 +92,8 @@ class Memory:
 @dataclass
 class Account:
     balance:int
+    codeAsm:str
+    codeBin:str
 
 class Context:
     def __init__(self, code, pc=0, jumpDest=[]):
@@ -579,7 +581,6 @@ def opcodeCallDataSize(ctx, inputParam):
 
 def opcodeCallDataCopy(ctx, inputParam):
     calldataOrig = inputParam.Txn['data']
-    print("jag --- ", calldataOrig, len(calldataOrig))
     # destOffset in memory
     a = ctx.stack.pop()
     # offset in calldata
@@ -593,8 +594,49 @@ def opcodeCallDataCopy(ctx, inputParam):
     ctx.memory.store(a, calldata, c)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeCodeCopy(ctx, inputParam):
+    code = ctx.code
+    # destOffset in memory
+    a = ctx.stack.pop()
+    # offset in executing code, can be calldata if deploying code.
+    #ToDo : code in calldata not implemented.
+    b = ctx.stack.pop()
+    # size
+    c = ctx.stack.pop()
+    codeLen = len(code)
+    code = code[b:b+c]
+    code = int.from_bytes(code, "big")
+    if b+c > codeLen:
+        code <<= (b + c - codeLen)*8
+    ctx.memory.store(a, code, c)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 def opcodeCodeSize(ctx, inputParam):
     ctx.stack.push(len(ctx.code))
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeExtCodeSize(ctx, inputParam):
+    a = ctx.stack.pop()
+    result = 0
+    if a in inputParam.State and inputParam.State[a].codeBin:
+        result = len(inputParam.State[a].codeBin) // 2
+    ctx.stack.push(result)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeExtCodeCopy(ctx, inputParam):
+    address = ctx.stack.pop()
+    code = inputParam.State[address].codeBin
+    # destOffset in memory
+    a = ctx.stack.pop()
+    # offset in calldata
+    b = ctx.stack.pop()
+    # size
+    c = ctx.stack.pop()
+    codeExact = code[b*2:b*2+(c*2)]
+    codeExact = int(codeExact, 16)
+    if (b*2)+(c*2) > len(code):
+        codeExact <<= (((b*2)+(c*2)-len(code))//2)*8
+    ctx.memory.store(a, codeExact, c)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
 @dataclass
@@ -739,6 +781,9 @@ opcode[0x35] = OpcodeData(0x35, "CALLDATALOAD", opcodeCallDataLoad)
 opcode[0x36] = OpcodeData(0x36, "CALLDATASIZE", opcodeCallDataSize)
 opcode[0x37] = OpcodeData(0x37, "CALLDATACOPY", opcodeCallDataCopy)
 opcode[0x38] = OpcodeData(0x38, "CODESIZE", opcodeCodeSize)
+opcode[0x39] = OpcodeData(0x39, "CODECOPY", opcodeCodeCopy)
+opcode[0x3b] = OpcodeData(0x3b, "EXTCODESIZE", opcodeExtCodeSize)
+opcode[0x3c] = OpcodeData(0x3c, "EXTCODECOPY", opcodeExtCodeCopy)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
@@ -756,7 +801,12 @@ def evm(code, outputStackLen, tx, block, state):
     # Create state
     stateDict = {}
     for address, values in state.items():
-        stateDict[int(address,16)] = Account(int(values['balance'], 16))
+        stateDict[int(address,16)] = Account(None, None, None)
+        if 'balance' in values:
+            stateDict[int(address,16)].balance = int(values['balance'], 16)
+        if 'code' in values:
+            stateDict[int(address,16)].codeAsm = values['code']['asm']
+            stateDict[int(address,16)].codeBin = values['code']['bin']
 
     inputParam = InputParam(Opcode=None, Txn=tx, Block=block, State=stateDict)
 
