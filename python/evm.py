@@ -95,13 +95,33 @@ class Account:
     codeAsm:str
     codeBin:str
 
+class Storage:
+    def __init__(self):
+        self.dict = {}
+
+    def store(self, key, value):
+        if key > UINT256MAX or value > UINT256MAX:
+            print('STACK OVERFLOW')
+        else:
+            self.dict[key] = value
+        print("store ", self.dict)
+
+    def load(self, key):
+        if key in self.dict:
+            print("load ", self.dict[key])
+            return self.dict[key]
+        else:
+            print("load 0")
+            return 0
+
 class Context:
-    def __init__(self, code, pc=0, jumpDest=[]):
+    def __init__(self, code, pc=0, jumpDest=[], storage=None):
         self.stack = Stack(1024)
         self.memory = Memory()
         self.code = code
         self.pc = pc
         self.jumpDest = jumpDest
+        self.storage = storage
 
 class Utils:
     @staticmethod
@@ -639,6 +659,39 @@ def opcodeExtCodeCopy(ctx, inputParam):
     ctx.memory.store(a, codeExact, c)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeExtCodeHash(ctx, inputParam):
+    a = ctx.stack.pop()
+    result = 0
+    if a in inputParam.State and inputParam.State[a].codeBin:
+        result = keccak(int(inputParam.State[a].codeBin, 16))
+        result = int.from_bytes(result, "big")
+        #ToDo : If codeBin is not present, then hash value will be
+        #       0xc5d24601...
+    print(result)
+    ctx.stack.push(result)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeSelfBalance(ctx, inputParam):
+    address = inputParam.Txn["to"]
+    address = int(address, 16)
+    result = 0
+    if address in inputParam.State and inputParam.State[address].balance:
+        result = inputParam.State[address].balance
+    ctx.stack.push(result)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeSStore(ctx, InputParam):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    ctx.storage.store(a, b)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
+def opcodeSLoad(ctx, InputParam):
+    a = ctx.stack.pop()
+    result = ctx.storage.load(a)
+    ctx.stack.push(result)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -784,6 +837,10 @@ opcode[0x38] = OpcodeData(0x38, "CODESIZE", opcodeCodeSize)
 opcode[0x39] = OpcodeData(0x39, "CODECOPY", opcodeCodeCopy)
 opcode[0x3b] = OpcodeData(0x3b, "EXTCODESIZE", opcodeExtCodeSize)
 opcode[0x3c] = OpcodeData(0x3c, "EXTCODECOPY", opcodeExtCodeCopy)
+opcode[0x3f] = OpcodeData(0x3f, "EXTCODEHASH", opcodeExtCodeHash)
+opcode[0x47] = OpcodeData(0x47, "SELFBALANCE", opcodeSelfBalance)
+opcode[0x55] = OpcodeData(0x55, "SSTORE", opcodeSStore)
+opcode[0x54] = OpcodeData(0x54, "SLOAD", opcodeSLoad)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
@@ -797,7 +854,8 @@ def evm(code, outputStackLen, tx, block, state):
 
     success = True
     jumpDest = Utils.scanForJumpDest(code)
-    ctx = Context(code, jumpDest=jumpDest)
+    storage = Storage()
+    ctx = Context(code, jumpDest=jumpDest, storage=storage)
     # Create state
     stateDict = {}
     for address, values in state.items():
@@ -889,4 +947,4 @@ if __name__ == '__main__':
         test()
     else:
         print('Run custom single test')
-        evm(bytes.fromhex(singleBin), 1)
+        evm(bytes.fromhex(singleBin), 1, None, None, {})
