@@ -104,14 +104,11 @@ class Storage:
             print('STACK OVERFLOW')
         else:
             self.dict[key] = value
-        print("store ", self.dict)
 
     def load(self, key):
         if key in self.dict:
-            print("load ", self.dict[key])
             return self.dict[key]
         else:
-            print("load 0")
             return 0
 
 class Context:
@@ -884,22 +881,25 @@ def evm(code, outputStackLen, tx, block, state):
                 break
         else:
             print("Opcode implementation not found for ", hex(op))
-            # return fake success but empty stack so that test case
+            # return fake success but empty stack and logs so that test case
             # panics with proper test name and error message
-            return (True, [])
+            return (True, [], None)
         
-    result=[]
+    stackOutput=[]
+    logs = None
     if ctx.stack.len():
         if outputStackLen >= 2:
-        # output format is different if output stack is greater than 2
-        # check evm.json for more details.
+            # output format is different if output stack is greater than 2
+            # check evm.json for more details.
             while ctx.stack.len():
-                result.append(ctx.stack.pop())
+                stackOutput.append(ctx.stack.pop())
         else:
             tempList = [f'{i:x}' for i in ctx.stack.elements()]
             print('result in hex ', ''.join(tempList))
-            result.append(int(''.join(tempList), 16))
-    return (success, result)
+            stackOutput.append(int(''.join(tempList), 16))
+            if outputStackLen == -1:
+                logs = None
+    return (success, stackOutput, logs)
 
 def test():
     script_dirname = os.path.dirname(os.path.abspath(__file__))
@@ -916,16 +916,24 @@ def test():
             state = test.get('state', {})
 
             code = bytes.fromhex(test['code']['bin'])
-            (success, stack) = evm(code, len(test['expect']['stack']), tx, block, state)
-
-            expected_stack = [int(x, 16) for x in test['expect']['stack']]
+            outputLog = test['expect'].get('logs', None)
+            if outputLog:
+                # -1 indicates output expects log
+                (success, stack, logs) = evm(code, -1 , tx, block, state)
+                expectedInput = test['expect']['logs']
+                expectedOutput = logs
+            else:
+                (success, stack, _) = evm(code, len(test['expect']['stack']), tx, block, state)
+                expectedInput = [int(x, 16) for x in test['expect']['stack']]
+                expectedOutput = stack
             
-            if stack != expected_stack or success != test['expect']['success']:
+            if expectedOutput != expectedInput or success != test['expect']['success']:
                 print(f"❌ Test #{i + 1}/{total} {test['name']}")
-                if stack != expected_stack:
-                    print("Stack doesn't match")
-                    print(" expected:", expected_stack)
-                    print("   actual:", stack)
+                if expectedOutput != expectedInput:
+                    temp = 'Log' if outputLog else 'Stack'
+                    print(f"{temp} doesn't match")
+                    print(" expected:", expectedInput)
+                    print("   actual:", expectedOutput)
                 else:
                     print("Success doesn't match")
                     print(" expected:", test['expect']['success'])
