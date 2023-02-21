@@ -83,9 +83,9 @@ class Memory:
         data = data.to_bytes(dataSize, 'big')
         self.array[offset:offset+dataSize] = data
 
-    def load(self, offset):
-        self._expand(offset, 32)
-        data = self.array[offset:offset+32]
+    def load(self, offset, dataSize=32):
+        self._expand(offset, dataSize)
+        data = self.array[offset:offset+dataSize]
         data = int.from_bytes(data, "big")
         return data
 
@@ -94,6 +94,12 @@ class Account:
     balance:int
     codeAsm:str
     codeBin:str
+
+@dataclass
+class Logs:
+    address:str
+    data:str
+    topics:list[str]
 
 class Storage:
     def __init__(self):
@@ -689,6 +695,13 @@ def opcodeSLoad(ctx, InputParam):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
+def opcodeLog0(ctx, InputParam):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    data = hex(ctx.memory.load(a, b))
+    logs = Logs(InputParam.Txn['to'], data, [])
+    return OpcodeResponse(success=True, stopRun=False, data=logs)
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -838,6 +851,7 @@ opcode[0x3f] = OpcodeData(0x3f, "EXTCODEHASH", opcodeExtCodeHash)
 opcode[0x47] = OpcodeData(0x47, "SELFBALANCE", opcodeSelfBalance)
 opcode[0x55] = OpcodeData(0x55, "SSTORE", opcodeSStore)
 opcode[0x54] = OpcodeData(0x54, "SLOAD", opcodeSLoad)
+opcode[0xa0] = OpcodeData(0xa0, "LOG0", opcodeLog0)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
@@ -884,10 +898,10 @@ def evm(code, outputStackLen, tx, block, state):
             # return fake success but empty stack and logs so that test case
             # panics with proper test name and error message
             return (True, [], None)
-        
+
     stackOutput=[]
     logs = None
-    if ctx.stack.len():
+    if ctx.stack.len() or opcodeReturn.data:
         if outputStackLen >= 2:
             # output format is different if output stack is greater than 2
             # check evm.json for more details.
@@ -896,9 +910,13 @@ def evm(code, outputStackLen, tx, block, state):
         else:
             tempList = [f'{i:x}' for i in ctx.stack.elements()]
             print('result in hex ', ''.join(tempList))
-            stackOutput.append(int(''.join(tempList), 16))
+            if len(tempList): stackOutput.append(int(''.join(tempList), 16))
             if outputStackLen == -1:
-                logs = None
+                to = opcodeReturn.data.address
+                data = opcodeReturn.data.data
+                topics = opcodeReturn.data.topics
+                logs = []
+                logs.append({'address':to, 'data':data[2:], 'topics':topics})
     return (success, stackOutput, logs)
 
 def test():
