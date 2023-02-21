@@ -695,11 +695,16 @@ def opcodeSLoad(ctx, InputParam):
     ctx.stack.push(result)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
-def opcodeLog0(ctx, InputParam):
+def opcodeLog(ctx, InputParam):
     a = ctx.stack.pop()
     b = ctx.stack.pop()
+    numTopics = InputParam.Opcode - 0xa0
+    topics = []
+    for _ in range(numTopics):
+        c = ctx.stack.pop()
+        topics.append(hex(c))
     data = hex(ctx.memory.load(a, b))
-    logs = Logs(InputParam.Txn['to'], data, [])
+    logs = Logs(InputParam.Txn['to'], data, topics)
     return OpcodeResponse(success=True, stopRun=False, data=logs)
 
 @dataclass
@@ -851,7 +856,11 @@ opcode[0x3f] = OpcodeData(0x3f, "EXTCODEHASH", opcodeExtCodeHash)
 opcode[0x47] = OpcodeData(0x47, "SELFBALANCE", opcodeSelfBalance)
 opcode[0x55] = OpcodeData(0x55, "SSTORE", opcodeSStore)
 opcode[0x54] = OpcodeData(0x54, "SLOAD", opcodeSLoad)
-opcode[0xa0] = OpcodeData(0xa0, "LOG0", opcodeLog0)
+opcode[0xa0] = OpcodeData(0xa0, "LOG0", opcodeLog)
+opcode[0xa1] = OpcodeData(0xa1, "LOG1", opcodeLog)
+opcode[0xa2] = OpcodeData(0xa2, "LOG2", opcodeLog)
+opcode[0xa3] = OpcodeData(0xa3, "LOG3", opcodeLog)
+opcode[0xa4] = OpcodeData(0xa4, "LOG4", opcodeLog)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
