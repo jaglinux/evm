@@ -17,6 +17,7 @@ import sys
 from dataclasses import dataclass
 from eth_utils import keccak
 from typing import Any
+from enum import Enum
 
 # Constants
 UINT256MAX = (2 ** 256) -1
@@ -173,7 +174,7 @@ def opcodePush(ctx, inputParam):
 
 def opcodePop(ctx, inputParam):
     data = ctx.stack.pop()
-    return OpcodeResponse(success=True, stopRun=False, data=data)
+    return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeAdd(ctx, inputParam):
     a = ctx.stack.pop()
@@ -703,14 +704,22 @@ def opcodeLog(ctx, InputParam):
         c = ctx.stack.pop()
         topics.append(hex(c))
     data = hex(ctx.memory.load(a, b))
+    data = data[2:]
     logs = Logs(InputParam.Txn['to'], data, topics)
-    return OpcodeResponse(success=True, stopRun=False, data=logs)
+    return OpcodeResponse(success=True, stopRun=False, data={'logs':logs})
+
+def opcodeReturn(ctx, InputParam):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    data = hex(ctx.memory.load(a, b))
+    data = data[2:]
+    return OpcodeResponse(success=True, stopRun=False, data={'returnData':data})
 
 @dataclass
 class OpcodeResponse:
     success: bool
     stopRun: bool #stop will be True for stop opcode
-    data: int # pop() opcode can return data popped through this variable
+    data: dict
 
 @dataclass
 class OpcodeData:
@@ -860,11 +869,16 @@ opcode[0xa1] = OpcodeData(0xa1, "LOG1", opcodeLog)
 opcode[0xa2] = OpcodeData(0xa2, "LOG2", opcodeLog)
 opcode[0xa3] = OpcodeData(0xa3, "LOG3", opcodeLog)
 opcode[0xa4] = OpcodeData(0xa4, "LOG4", opcodeLog)
+opcode[0xf3] = OpcodeData(0xf3, "RETURN", opcodeReturn)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
 
-def evm(code, outputStackLen, tx, block, state):
+class outputStackFormat(Enum):
+    MultipleLine = 1
+    SingleLine = 2
+
+def evm(code, outStackFormat, tx, block, state):
     global testsRun, testsMax
     if testsRun >= testsMax:
         print(f'Implemented {len(opcode)} opcodes ')
@@ -909,24 +923,27 @@ def evm(code, outputStackLen, tx, block, state):
             return (True, [], None)
 
     stackOutput=[]
-    logs = None
-    if ctx.stack.len() or opcodeReturn.data:
-        if outputStackLen >= 2:
-            # output format is different if output stack is greater than 2
-            # check evm.json for more details.
-            while ctx.stack.len():
-                stackOutput.append(ctx.stack.pop())
-        else:
-            tempList = [f'{i:x}' for i in ctx.stack.elements()]
-            print('result in hex ', ''.join(tempList))
-            if len(tempList): stackOutput.append(int(''.join(tempList), 16))
-            if outputStackLen == -1:
-                to = opcodeReturn.data.address
-                data = opcodeReturn.data.data
-                topics = opcodeReturn.data.topics
-                logs = []
-                logs.append({'address':to, 'data':data[2:], 'topics':topics})
-    return (success, stackOutput, logs)
+    logsReturnOutput = {}
+    if opcodeReturn.data:
+        if 'logs' in opcodeReturn.data:
+            to = opcodeReturn.data['logs'].address
+            data = opcodeReturn.data['logs'].data
+            topics = opcodeReturn.data['logs'].topics
+            logs = []
+            logs.append({'address':to, 'data':data, 'topics':topics})
+            logsReturnOutput['logs'] = logs
+        logsReturnOutput['returnData'] = opcodeReturn.data.get('returnData', None)
+
+    if outStackFormat == outputStackFormat.MultipleLine:
+        while ctx.stack.len():
+            stackOutput.append(ctx.stack.pop())
+    else:
+        # Default output stack format is outputStackFormat.SingleLine
+        tempList = [f'{i:x}' for i in ctx.stack.elements()]
+        print('result in hex ', ''.join(tempList))
+        if len(tempList): stackOutput.append(int(''.join(tempList), 16))
+
+    return (success, stackOutput, logsReturnOutput)
 
 def test():
     script_dirname = os.path.dirname(os.path.abspath(__file__))
@@ -943,22 +960,34 @@ def test():
             state = test.get('state', {})
 
             code = bytes.fromhex(test['code']['bin'])
-            outputLog = test['expect'].get('logs', None)
-            if outputLog:
-                # -1 indicates output expects log
-                (success, stack, logs) = evm(code, -1 , tx, block, state)
-                expectedInput = test['expect']['logs']
-                expectedOutput = logs
+
+            testStackFormat = test['expect'].get('stack', [])
+            if len(testStackFormat) > 1:
+                testStackFormat = outputStackFormat.MultipleLine
             else:
-                (success, stack, _) = evm(code, len(test['expect']['stack']), tx, block, state)
+                testStackFormat = outputStackFormat.SingleLine
+
+            (success, stack, logsReturnOutput) = evm(code, testStackFormat, tx, block, state)
+
+            logOutput = test['expect'].get('logs', None)
+            returnOutput = test['expect'].get('return', None)
+            if logOutput:
+                expectedInput = test['expect']['logs']
+                expectedOutput = logsReturnOutput['logs']
+                errorFormat = 'Log'
+            elif returnOutput:
+                expectedInput = test['expect']['return']
+                expectedOutput = logsReturnOutput['returnData']
+                errorFormat = 'Return Data'
+            else:
                 expectedInput = [int(x, 16) for x in test['expect']['stack']]
                 expectedOutput = stack
+                errorFormat = 'Stack'
             
             if expectedOutput != expectedInput or success != test['expect']['success']:
                 print(f"❌ Test #{i + 1}/{total} {test['name']}")
                 if expectedOutput != expectedInput:
-                    temp = 'Log' if outputLog else 'Stack'
-                    print(f"{temp} doesn't match")
+                    print(f"{errorFormat} doesn't match")
                     print(" expected:", expectedInput)
                     print("   actual:", expectedOutput)
                 else:
