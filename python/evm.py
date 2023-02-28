@@ -118,13 +118,14 @@ class Storage:
             return 0
 
 class Context:
-    def __init__(self, code, pc=0, jumpDest=[], storage=None):
+    def __init__(self, code, pc=0, calldata = "", jumpDest=[], storage=None):
         self.stack = Stack(1024)
         self.memory = Memory()
         self.code = code
         self.pc = pc
         self.jumpDest = jumpDest
         self.storage = storage
+        self.calldata = calldata
 
 class Utils:
     @staticmethod
@@ -586,7 +587,7 @@ def opcodeCallValue(ctx, inputParam):
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeCallDataLoad(ctx, inputParam):
-    calldataOrig = inputParam.Txn['data']
+    calldataOrig = ctx.calldata
     a = ctx.stack.pop()
     calldata = calldataOrig[a*2:a*2+64]
     calldata = int(calldata, 16)
@@ -596,14 +597,12 @@ def opcodeCallDataLoad(ctx, inputParam):
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeCallDataSize(ctx, inputParam):
-    calldata = ''
-    if inputParam.Txn is not None and 'data' in inputParam.Txn:
-        calldata = inputParam.Txn['data']
+    calldata = ctx.calldata
     ctx.stack.push(len(calldata)//2)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
 def opcodeCallDataCopy(ctx, inputParam):
-    calldataOrig = inputParam.Txn['data']
+    calldataOrig = ctx.calldata
     # destOffset in memory
     a = ctx.stack.pop()
     # offset in calldata
@@ -875,7 +874,8 @@ def evm(code, outputStackLen, tx, block, state):
     success = True
     jumpDest = Utils.scanForJumpDest(code)
     storage = Storage()
-    ctx = Context(code, jumpDest=jumpDest, storage=storage)
+    calldata = tx.get('data', "") if tx else ""
+    ctx = Context(code, calldata=calldata, jumpDest=jumpDest, storage=storage)
     # Create state
     stateDict = {}
     for address, values in state.items():
