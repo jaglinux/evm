@@ -131,7 +131,7 @@ class Context:
 class Utils:
     @staticmethod
     def convert2sComplementToInt(a):
-        # if MSB (256th bit since its 32 bytes word) is 1,
+        # if MSB (255th bit since its 32 bytes word) is 1,
         #  then its negative number
         # if MSB is 0, its positive number, just return the input
         if a & (1 << 255):
@@ -361,7 +361,7 @@ def opcodeIsZero(ctx, inputParam):
 
 def opcodeNot(ctx, inputParam):
     a = ctx.stack.pop()
-    a ^= (2 ** 256)-1
+    a ^= UINT256MAX
     ctx.stack.push(a)
     return OpcodeResponse(success=True, stopRun=False, data=None)
 
@@ -413,7 +413,7 @@ def opcodeSAR(ctx, inputParam):
     isNegative = b & (1 << 255)
     if a > 255:
         if isNegative:
-            result = (2**256)-1
+            result = UINT256MAX
         else:
             result = 0
     else:
