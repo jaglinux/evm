@@ -713,7 +713,14 @@ def opcodeReturn(ctx, InputParam):
     b = ctx.stack.pop()
     data = hex(ctx.memory.load(a, b))
     data = data[2:]
-    return OpcodeResponse(success=True, stopRun=False, data={'returnData':data})
+    return OpcodeResponse(success=True, stopRun=True, data={'returnData':data})
+
+def opcodeRevert(ctx, InputParam):
+    a = ctx.stack.pop()
+    b = ctx.stack.pop()
+    data = hex(ctx.memory.load(a, b))
+    data = data[2:]
+    return OpcodeResponse(success=False, stopRun=True, data={'returnData':data})
 
 @dataclass
 class OpcodeResponse:
@@ -870,6 +877,7 @@ opcode[0xa2] = OpcodeData(0xa2, "LOG2", opcodeLog)
 opcode[0xa3] = OpcodeData(0xa3, "LOG3", opcodeLog)
 opcode[0xa4] = OpcodeData(0xa4, "LOG4", opcodeLog)
 opcode[0xf3] = OpcodeData(0xf3, "RETURN", opcodeReturn)
+opcode[0xfd] = OpcodeData(0xfd, "REVERT", opcodeRevert)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
