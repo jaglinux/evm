@@ -118,6 +118,7 @@ class Storage:
         else:
             return 0
 
+
 class Context:
     def __init__(self, code, pc=0, calldata = "", jumpDest=[], storage=None):
         self.stack = Stack(1024)
@@ -127,6 +128,23 @@ class Context:
         self.jumpDest = jumpDest
         self.storage = storage
         self.calldata = calldata
+
+class CallStack:
+    def __init__(self, code):
+        self.stacks = []
+        self.code = code
+        self.jumpDest = Utils.scanForJumpDest(code)
+
+    def call(self, calldata):
+        storage = Storage()
+        ctx = Context(self.code, calldata=calldata, jumpDest=self.jumpDest, storage=storage)
+        self.stacks.append(ctx)
+
+    def pop(self):
+        return self.stacks.pop()
+
+    def currentCtx(self):
+        return self.stacks[-1]
 
 class Utils:
     @staticmethod
@@ -722,6 +740,15 @@ def opcodeRevert(ctx, InputParam):
     data = data[2:]
     return OpcodeResponse(success=False, stopRun=True, data={'returnData':data})
 
+def opcodeCall(ctx, InputParam):
+    gas = ctx.stack.pop()
+    address = ctx.stack.pop()
+    value = ctx.stack.pop()
+    argsOffset = ctx.stack.pop()
+    argsSize = ctx.stack.pop()
+    retOffset = ctx.stack.pop()
+    retSize = ctx.stack.pop()
+
 @dataclass
 class OpcodeResponse:
     success: bool
@@ -878,6 +905,7 @@ opcode[0xa3] = OpcodeData(0xa3, "LOG3", opcodeLog)
 opcode[0xa4] = OpcodeData(0xa4, "LOG4", opcodeLog)
 opcode[0xf3] = OpcodeData(0xf3, "RETURN", opcodeReturn)
 opcode[0xfd] = OpcodeData(0xfd, "REVERT", opcodeRevert)
+opcode[0xf1] = OpcodeData(0xf1, "CALL", opcodeCall)
 
 def prehook(opcodeDataObj):
     print(f'Running opcode {hex(opcodeDataObj.opcode)} {opcodeDataObj.name}')
@@ -893,11 +921,10 @@ def evm(code, outStackFormat, tx, block, state):
         sys.exit()
     testsRun+=1
 
-    success = True
-    jumpDest = Utils.scanForJumpDest(code)
-    storage = Storage()
+    success = None
     calldata = tx.get('data', "") if tx else ""
-    ctx = Context(code, calldata=calldata, jumpDest=jumpDest, storage=storage)
+    callStack = CallStack(code)
+    callStack.call(calldata)
     # Create state
     stateDict = {}
     for address, values in state.items():
@@ -910,8 +937,9 @@ def evm(code, outStackFormat, tx, block, state):
 
     inputParam = InputParam(Opcode=None, Txn=tx, Block=block, State=stateDict)
 
-    while ctx.pc < len(code):
-        op = code[ctx.pc]
+    ctx = callStack.currentCtx()
+    while ctx.pc < len(ctx.code):
+        op = ctx.code[ctx.pc]
         # pc will always increment by 1 here
         # pc can also be incremented in PUSH opcodes
         ctx.pc += 1
